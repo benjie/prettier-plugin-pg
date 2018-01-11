@@ -29,5 +29,8 @@
     "eslint-plugin-prettier": "2.4.0",
     "jest": "22.0.6",
     "prettier": "1.10.2"
+  },
+  "dependencies": {
+    "pg-query-native": "1.1.0"
   }
 }

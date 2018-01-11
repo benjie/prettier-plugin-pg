@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`sEleCt  
+1     as       
+       one     from     "Table"
+       ; 1`] = `"SELECT 1 as one from \"Table\";"`;
+
+exports[`sEleCt     1     as       one     from     "Table"; 1`] = `"SELECT 1 AS one FROM \"Table\";"`;
+
+exports[`sEleCt 1 from "Table"; 1`] = `"SELECT 1 FROM \"Table\";"`;
+
+exports[`sEleCt 1 from "table"; 1`] = `"SELECT 1 FROM table;"`;
+
+exports[`sEleCt 1 from table; 1`] = `"SELECT 1 FROM table;"`;
+
+exports[`sEleCt 1; 1`] = `"SELECT 1;"`;
+
+exports[`select 1; 1`] = `"SELECT 1;"`;
