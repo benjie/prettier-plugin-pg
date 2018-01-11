@@ -21,5 +21,13 @@
     "psql"
   ],
   "author": "Benjie Gillam <code@benjiegillam.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "babel-eslint": "8.2.1",
+    "eslint": "4.15.0",
+    "eslint-config-prettier": "2.9.0",
+    "eslint-plugin-prettier": "2.4.0",
+    "jest": "22.0.6",
+    "prettier": "1.10.2"
+  }
 }
