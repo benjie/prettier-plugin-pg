@@ -1,0 +1,25 @@
+{
+  "name": "prettier-plugin-pg-sql",
+  "version": "0.1.0",
+  "description": "A prettier plugin for formatting PostgreSQL-flavour SQL",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https+git://github.com/benjie/prettier-plugin-pg-sql.git"
+  },
+  "keywords": [
+    "prettier",
+    "sql",
+    "pgsql",
+    "postgres",
+    "postgresql",
+    "plpgsql",
+    "plv8",
+    "psql"
+  ],
+  "author": "Benjie Gillam <code@benjiegillam.com>",
+  "license": "MIT"
+}
