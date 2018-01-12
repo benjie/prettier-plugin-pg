@@ -29,6 +29,17 @@ const _ = {
   },
 };
 
+const CONSTRAINT_TYPES = [
+  "NULL",
+  "NOT NULL",
+  "DEFAULT",
+  "CHECK",
+  "PRIMARY KEY",
+  "UNIQUE",
+  "EXCLUDE",
+  "REFERENCES",
+];
+
 const { keys } = _;
 
 const compact = o => {
@@ -51,7 +62,7 @@ const parens = string => {
 
 const indent = (text, count = 1) => text;
 
-class Deparser {
+module.exports = class Deparser {
   static deparse(query) {
     return new Deparser(query).deparseQuery();
   }
@@ -1045,6 +1056,247 @@ class Deparser {
     return output.join(" ");
   }
 
+  ["CreateStmt"](node) {
+    const output = [];
+    output.push("CREATE TABLE");
+    output.push(this.deparse(node.relation));
+    output.push("(");
+    output.push(this.list(node.tableElts));
+    output.push(")");
+    output.push(";");
+    return output.join(" ");
+  }
+
+  ["ConstraintStmt"](node) {
+    const output = [];
+    const constraint = CONSTRAINT_TYPES[node.contype];
+
+    if (node.conname) {
+      output.push(`CONSTRAINT ${node.conname} ${constraint}`);
+    } else {
+      output.push(constraint);
+    }
+
+    return output.join(" ");
+  }
+
+  ["ReferenceConstraint"](node) {
+    const output = [];
+    if (node.pk_attrs && node.fk_attrs) {
+      output.push("FOREIGN KEY");
+      output.push("(");
+      output.push(this.list(node.fk_attrs));
+      output.push(")");
+      output.push("REFERENCES");
+      output.push(this.deparse(node.pktable));
+      output.push("(");
+      output.push(this.list(node.pk_attrs));
+      output.push(")");
+    } else if (node.pk_attrs) {
+      output.push(this.ConstraintStmt(node));
+      output.push(this.deparse(node.pktable));
+      output.push("(");
+      output.push(this.list(node.pk_attrs));
+      output.push(")");
+    } else {
+      output.push(this.ConstraintStmt(node));
+      output.push(this.deparse(node.pktable));
+    }
+    return output.join(" ");
+  }
+
+  ["ExclusionConstraint"](node) {
+    const output = [];
+    function getExclusionGroup(node) {
+      var output = [];
+      var a = node.exclusions.map(excl => {
+        if (excl[0].IndexElem.name) {
+          return excl[0].IndexElem.name;
+        } else if (excl[0].IndexElem.expr) {
+          return this.deparse(excl[0].IndexElem.expr);
+        }
+      });
+
+      var b = node.exclusions.map(excl => this.deparse(excl[1][0]));
+
+      for (var i = 0; i < a.length; i++) {
+        output.push(`${a[i]} WITH ${b[i]}`);
+        i !== a.length - 1 && output.push(",");
+      }
+
+      return output.join(" ");
+    }
+
+    if (node.exclusions && node.access_method) {
+      output.push("USING");
+      output.push(node.access_method);
+      output.push("(");
+      output.push(getExclusionGroup.call(this, node));
+      output.push(")");
+    }
+
+    return output.join(" ");
+  }
+
+  ["Constraint"](node) {
+    const output = [];
+
+    const constraint = CONSTRAINT_TYPES[node.contype];
+    if (!constraint) {
+      throw new Error("type not implemented: " + node.contype);
+    }
+
+    if (constraint === "REFERENCES") {
+      output.push(this.ReferenceConstraint(node));
+    } else {
+      output.push(this.ConstraintStmt(node));
+    }
+
+    if (node.keys) {
+      output.push("(");
+      output.push(this.list(node.keys));
+      output.push(")");
+    }
+
+    if (node.raw_expr) {
+      output.push(this.deparse(node.raw_expr));
+    }
+
+    if (node.fk_del_action) {
+      switch (node.fk_del_action) {
+        case "r":
+          output.push("ON DELETE RESTRICT");
+          break;
+        case "c":
+          output.push("ON DELETE CASCADE");
+          break;
+        default:
+      }
+    }
+
+    if (node.fk_upd_action) {
+      switch (node.fk_upd_action) {
+        case "r":
+          output.push("ON UPDATE RESTRICT");
+          break;
+        case "c":
+          output.push("ON UPDATE CASCADE");
+          break;
+        default:
+      }
+    }
+
+    if (constraint === "EXCLUDE") {
+      output.push(this.ExclusionConstraint(node));
+    }
+
+    return output.join(" ");
+  }
+
+  ["FunctionParameter"](node) {
+    const output = [];
+
+    output.push(node.name);
+    output.push(this.deparse(node.argType));
+
+    return output.join(" ");
+  }
+
+  ["CreateFunctionStmt"](node) {
+    const output = [];
+
+    output.push("CREATE");
+    if (node.replace) {
+      output.push("OR REPLACE");
+    }
+    output.push("FUNCTION");
+
+    output.push(node.funcname.map(name => this.deparse(name)).join("."));
+    output.push("(");
+    output.push(
+      node.parameters
+        .filter(({ FunctionParameter }) => FunctionParameter.mode === 105)
+        .map(param => this.deparse(param))
+        .join(", ")
+    );
+    output.push(")");
+
+    var returns = node.parameters.filter(
+      ({ FunctionParameter }) => FunctionParameter.mode === 116
+    );
+    // var setof = node.parameters.filter(
+    //   ({ FunctionParameter }) => FunctionParameter.mode === 109
+    // );
+
+    output.push("RETURNS");
+    if (returns.length) {
+      output.push("TABLE");
+      output.push("(");
+      output.push(
+        node.parameters
+          .filter(({ FunctionParameter }) => FunctionParameter.mode === 116)
+          .map(param => this.deparse(param))
+          .join(", ")
+      );
+      output.push(")");
+    } else {
+      output.push(this.deparse(node.returnType));
+    }
+
+    var elems = {};
+
+    node.options.forEach(option => {
+      if (option && option.DefElem) {
+        switch (option.DefElem.defname) {
+          case "as":
+            elems.as = option;
+            break;
+
+          case "language":
+            elems.language = option;
+            break;
+
+          case "volatility":
+            elems.volatility = option;
+            break;
+        }
+      }
+    });
+
+    output.push(`
+AS $$${this.deparse(elems.as.DefElem.arg[0])}$$
+LANGUAGE '${this.deparse(elems.language.DefElem.arg)}' ${this.deparse(
+      elems.volatility.DefElem.arg
+    ).toUpperCase()};
+`);
+
+    return output.join(" ");
+  }
+  ["CreateSchemaStmt"](node) {
+    const output = [];
+
+    output.push("CREATE");
+    if (node.replace) {
+      output.push("OR REPLACE");
+    }
+    output.push("SCHEMA");
+    output.push(node.schemaname);
+    return output.join(" ");
+  }
+
+  ["TransactionStmt"](node) {
+    switch (node.kind) {
+      case 0:
+        return "BEGIN";
+        break;
+      case 1:
+        break;
+      case 2:
+        return "COMMIT";
+      default:
+    }
+  }
+
   ["SortBy"](node) {
     const output = [];
 
@@ -1457,6 +1709,4 @@ class Deparser {
 
     return this.INTERVALS[mask.toString()];
   }
-}
-
-module.exports = Deparser;
+};
