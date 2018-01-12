@@ -2,7 +2,9 @@ const { parse: parseSQL } = require("pg-query-native");
 const {
   concat,
   join,
+  hardline,
   line,
+  softline,
   ifBreak,
   group,
   indent,
@@ -29,7 +31,7 @@ function parse(text, _parsers, _options) {
 function print(path, options, print) {
   const n = path.getValue();
   if (Array.isArray(n)) {
-    return join(line, path.map(print));
+    return n.length ? concat([join(hardline, path.map(print)), hardline]) : "";
   }
   if (!n) {
     throw new Error("!n?!");
@@ -52,8 +54,7 @@ function print(path, options, print) {
         if (val) {
           const { Integer } = val;
           if (Integer) {
-            const { ival } = Integer;
-            return String(ival);
+            return `${Integer.ival}`;
           }
         }
       }
