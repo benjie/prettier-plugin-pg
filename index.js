@@ -8,6 +8,8 @@ const {
   indent,
 } = require("prettier").doc.builders;
 
+const Deparser = require("./deparser");
+
 function unimp(o) {
   throw new Error("Unimplemented: \n" + JSON.stringify(o, null, 2));
 }
@@ -58,7 +60,8 @@ function print(path, options, print) {
     }
     unimp(n);
   } else {
-    unimp(n);
+    //unimp(n);
+    return new Deparser().deparse(n);
   }
 
   console.log(n);
