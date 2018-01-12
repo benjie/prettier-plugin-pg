@@ -9,8 +9,25 @@ Neither the name "pg-query-parser" nor the names of its contributors may be used
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import _ from "lodash";
-import { format } from "util";
+const { format } = require("util");
+
+const _ = {
+  keys: Object.keys,
+  identity: val => val,
+  isArray: Array.isArray,
+  isNumber: n => typeof n === "number",
+  values: Object.values,
+  filter: (arr, fn) => arr.filter(fn),
+  compact: arr => arr.filter(_.identity),
+  last: arr => arr[arr.length - 1],
+  invert: input => {
+    const output = {};
+    for (const key in input) {
+      output[input[key]] = key;
+    }
+    return output;
+  },
+};
 
 const { keys } = _;
 
@@ -34,7 +51,7 @@ const parens = string => {
 
 const indent = (text, count = 1) => text;
 
-export default class Deparser {
+class Deparser {
   static deparse(query) {
     return new Deparser(query).deparseQuery();
   }
@@ -1441,3 +1458,5 @@ export default class Deparser {
     return this.INTERVALS[mask.toString()];
   }
 }
+
+module.exports = Deparser;
