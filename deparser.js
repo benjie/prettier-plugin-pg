@@ -1215,15 +1215,19 @@ module.exports = class Deparser {
     output.push("(");
     output.push(
       node.parameters
-        .filter(({ FunctionParameter }) => FunctionParameter.mode === 105)
-        .map(param => this.deparse(param))
-        .join(", ")
+        ? node.parameters
+            .filter(({ FunctionParameter }) => FunctionParameter.mode === 105)
+            .map(param => this.deparse(param))
+            .join(", ")
+        : ""
     );
     output.push(")");
 
-    var returns = node.parameters.filter(
-      ({ FunctionParameter }) => FunctionParameter.mode === 116
-    );
+    var returns = node.parameters
+      ? node.parameters.filter(
+          ({ FunctionParameter }) => FunctionParameter.mode === 116
+        )
+      : [];
     // var setof = node.parameters.filter(
     //   ({ FunctionParameter }) => FunctionParameter.mode === 109
     // );
@@ -1263,11 +1267,13 @@ module.exports = class Deparser {
       }
     });
 
+    console.log(elems);
+
     output.push(`
 AS $$${this.deparse(elems.as.DefElem.arg[0])}$$
-LANGUAGE '${this.deparse(elems.language.DefElem.arg)}' ${this.deparse(
-      elems.volatility.DefElem.arg
-    ).toUpperCase()};
+LANGUAGE '${this.deparse(elems.language.DefElem.arg)}' ${elems.volatility
+      ? this.deparse(elems.volatility.DefElem.arg).toUpperCase()
+      : ""};
 `);
 
     return output.join(" ");
