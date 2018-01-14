@@ -44,6 +44,11 @@ function getOnlyKey(obj) {
   return allKeys[0];
 }
 
+function escapeFunctionBody(body) {
+  // TODO: make this safe against bodies that contain `$$`!!
+  return `$$${body}$$`;
+}
+
 function oldIndent(str) {
   return str;
 }
@@ -1399,27 +1404,7 @@ const TYPES = {
   },
 
   ["CreateFunctionStmt"](node) {
-    const output = [];
-
-    output.push("CREATE");
-    if (node.replace) {
-      output.push("OR REPLACE");
-    }
-    output.push("FUNCTION");
-
-    output.push(node.funcname.map(name => deparse(name)).join("."));
-    output.push("(");
-    output.push(
-      node.parameters
-        ? node.parameters
-            .filter(({ FunctionParameter }) => FunctionParameter.mode === 105)
-            .map(param => deparse(param))
-            .join(", ")
-        : ""
-    );
-    output.push(")");
-
-    var returns = node.parameters
+    const returns = node.parameters
       ? node.parameters.filter(
           ({ FunctionParameter }) => FunctionParameter.mode === 116
         )
@@ -1427,22 +1412,6 @@ const TYPES = {
     // var setof = node.parameters.filter(
     //   ({ FunctionParameter }) => FunctionParameter.mode === 109
     // );
-
-    output.push("RETURNS");
-    if (returns.length) {
-      output.push("TABLE");
-      output.push("(");
-      output.push(
-        node.parameters
-          .filter(({ FunctionParameter }) => FunctionParameter.mode === 116)
-          .map(param => deparse(param))
-          .join(", ")
-      );
-      output.push(")");
-    } else {
-      output.push(deparse(node.returnType));
-    }
-
     var elems = {};
 
     node.options.forEach(option => {
@@ -1462,17 +1431,60 @@ const TYPES = {
         }
       }
     });
+    return group(
+      concat([
+        "CREATE ",
+        node.replace ? "OR REPLACE " : "",
+        "FUNCTION ",
+        join(".", node.funcname.map(name => deparse(name))),
+        softline,
+        "(",
+        group(
+          join(
+            ",",
+            node.parameters
+              ? node.parameters
+                  .filter(
+                    ({ FunctionParameter }) => FunctionParameter.mode === 105
+                  )
+                  .map(param => deparse(param))
+              : []
+          )
+        ),
+        ")",
+        line,
+        "RETURNS",
+        line,
+        returns.length
+          ? group(
+              concat([
+                "TABLE(",
+                group(
+                  join(
+                    concat(",", line),
+                    node.parameters
+                      .filter(
+                        ({ FunctionParameter }) =>
+                          FunctionParameter.mode === 116
+                      )
+                      .map(param => deparse(param))
+                  )
+                ),
+                ")",
+              ])
+            )
+          : deparse(node.returnType),
+        line,
+        `LANGUAGE '${deparse(elems.language.DefElem.arg)}'`,
+        line,
 
-    output.push(`
-AS $$${deparse(elems.as.DefElem.arg[0])}$$
-LANGUAGE '${deparse(elems.language.DefElem.arg)}' ${
-      elems.volatility
-        ? deparse(elems.volatility.DefElem.arg).toUpperCase()
-        : ""
-    };
-`);
-
-    return output.join(" ");
+        elems.volatility
+          ? deparse(elems.volatility.DefElem.arg).toUpperCase()
+          : "",
+        "AS ",
+        escapeFunctionBody(deparse(elems.as.DefElem.arg[0])),
+      ])
+    );
   },
 
   ["CreateSchemaStmt"](node) {

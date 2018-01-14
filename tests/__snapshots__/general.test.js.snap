@@ -63,7 +63,7 @@ exports[`select 1;
 select 2; create function foo() returns text as $$ select 'hi'; $$ language sql; 1`] = `
 "SELECT 1;
 SELECT 2;
-CREATE FUNCTION foo() RETURNS TEXT LANGUAGE SQL AS $$ SELECT 'hi'; $$;
+CREATE FUNCTION foo() RETURNS text LANGUAGE 'sql' AS $$ select 'hi'; $$;
 "
 `;
 
