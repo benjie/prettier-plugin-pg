@@ -44,7 +44,7 @@ module.exports = (path, print, textToDoc, options) => {
           parser,
           __inPostgreSQLFunction: true,
         });
-        return concat([hardline, indent(group(doc)), hardline]);
+        return concat([indent(concat([hardline, group(doc)])), hardline]);
       } else {
         console.warn(
           `Do not know how to parse functions of language '${language}'`
