@@ -4,22 +4,22 @@ exports[`sEleCt
 1     as       
        one     from     "Table"
        ; 1`] = `
-"SELECT 1 AS one FROM "Table";
+"SELECT 1 AS one FROM \\"Table\\";
 "
 `;
 
 exports[`sEleCt     1     as       one     from     "Table"; 1`] = `
-"SELECT 1 AS one FROM "Table";
+"SELECT 1 AS one FROM \\"Table\\";
 "
 `;
 
 exports[`sEleCt 1 from "Table"; 1`] = `
-"SELECT 1 FROM "Table";
+"SELECT 1 FROM \\"Table\\";
 "
 `;
 
 exports[`sEleCt 1 from "table"; 1`] = `
-"SELECT 1 FROM table;
+"SELECT 1 FROM \\"table\\";
 "
 `;
 
