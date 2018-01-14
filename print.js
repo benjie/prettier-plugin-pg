@@ -44,9 +44,14 @@ function getOnlyKey(obj) {
   return allKeys[0];
 }
 
-function escapeFunctionBody(body) {
-  // TODO: make this safe against bodies that contain `$$`!!
-  return `$$${body}$$`;
+function getFunctionBodyEscapeSequence(text) {
+  for (let i = 0; i < 1000; i++) {
+    const escape = `$${i === 1 ? "_" : i ? i : ""}$`;
+    if (text.indexOf(escape) < 0) {
+      return escape;
+    }
+  }
+  throw new Error("Could not find an acceptable function escape sequence");
 }
 
 function oldIndent(str) {
@@ -66,6 +71,26 @@ const {
 
 function assertEmptyObject(obj) {
   return Object.keys(obj).length === 0;
+}
+
+function isContextNode(node) {
+  const allKeys = Object.keys(node);
+  if (allKeys.length === 1) {
+    if (allKeys[0].substr(-4) === "Stmt") {
+      return true;
+    }
+    // TODO: context could be part way through, e.g. `INSERT INTO foo SELECT col from my_table` - make sure we handle this.
+  }
+  return false;
+}
+
+function getContextNodeFromPath(path) {
+  for (let i = 0, parent = null; (parent = path.getParentNode(i)); i++) {
+    if (isContextNode(parent)) {
+      return parent;
+    }
+  }
+  return null;
 }
 
 const CONSTRAINT_TYPES = [
@@ -221,7 +246,7 @@ function getType(names, args) {
   return mods(res, args);
 }
 
-function deparse(item, context) {
+function deparse(item) {
   if (item == null) {
     return null;
   }
@@ -237,7 +262,7 @@ function deparse(item, context) {
     throw new Error(type + " is not implemented");
   }
 
-  return TYPES[type](node, context);
+  return TYPES[type](node);
 }
 
 module.exports = function print(path, options, print) {
@@ -388,7 +413,7 @@ function deparseInterval(node) {
 }
 
 const TYPES = {
-  ["A_Expr"](node, context) {
+  ["A_Expr"](node) {
     const output = [];
 
     switch (node.kind) {
@@ -526,7 +551,7 @@ const TYPES = {
     }
   },
 
-  ["Alias"](node, context) {
+  ["Alias"](node) {
     const name = node.aliasname;
 
     const output = ["AS"];
@@ -544,7 +569,7 @@ const TYPES = {
     return format("ARRAY[%s]", list(node.elements));
   },
 
-  ["A_Const"](node, context) {
+  ["A_Const"](node) {
     if (node.val.String) {
       return escape(deparse(node.val));
     }
@@ -585,7 +610,7 @@ const TYPES = {
     return output.join("");
   },
 
-  ["A_Star"](node, context) {
+  ["A_Star"](node) {
     return "*";
   },
 
@@ -719,7 +744,7 @@ const TYPES = {
     return node.str;
   },
 
-  ["FuncCall"](node, context) {
+  ["FuncCall"](node) {
     const output = [];
 
     let params = [];
@@ -825,7 +850,7 @@ const TYPES = {
     return deparse(node.rel);
   },
 
-  ["JoinExpr"](node, context) {
+  ["JoinExpr"](node) {
     const output = [];
 
     output.push(deparse(node.larg));
@@ -1020,7 +1045,7 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["RangeSubselect"](node, context) {
+  ["RangeSubselect"](node) {
     let output = "";
 
     if (node.lateral) {
@@ -1054,7 +1079,7 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["RangeVar"](node, context) {
+  ["RangeVar"](node) {
     const output = [];
 
     if (node.inhOpt === 0) {
@@ -1083,12 +1108,13 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["ResTarget"](node, context) {
-    if (context === "select") {
+  ["ResTarget"](node) {
+    const parentNode = path.getParentNode();
+    if (parentNode.SelectStmt) {
       return compact([deparse(node.val), quoteIdent(node.name)]).join(" AS ");
-    } else if (context === "update") {
+    } else if (parentNode.UpdateStmt) {
       return compact([node.name, deparse(node.val)]).join(" = ");
-    } else if (!(node.val != null)) {
+    } else if (node.val == null) {
       return quoteIdent(node.name);
     }
 
@@ -1103,7 +1129,7 @@ const TYPES = {
     return format("ROW(%s)", list(node.args));
   },
 
-  ["SelectStmt"](node, context) {
+  ["SelectStmt"](node) {
     const output = [];
     const {
       withClause,
@@ -1412,25 +1438,37 @@ const TYPES = {
     // var setof = node.parameters.filter(
     //   ({ FunctionParameter }) => FunctionParameter.mode === 109
     // );
-    var elems = {};
+    let volatility, language, as;
+
+    let functionBodyPath;
 
     node.options.forEach(option => {
       if (option && option.DefElem) {
         switch (option.DefElem.defname) {
           case "as":
-            elems.as = option;
+            functionBodyPath = path;
+            as = option;
             break;
 
           case "language":
-            elems.language = option;
+            language = option;
             break;
 
           case "volatility":
-            elems.volatility = option;
+            volatility = option;
             break;
+
+          default:
+            throw new Error(
+              `Did not understand DefElem defname: '${option.DefElem.defname}'`
+            );
         }
       }
     });
+    console.log(as);
+    const functionBody = as.DefElem.arg[0];
+    // TODO: we need to do this on the result body, not the source body, in case it's been modified.
+    const functionEscape = getFunctionBodyEscapeSequence(deparse(functionBody));
     return group(
       concat([
         "CREATE ",
@@ -1475,14 +1513,14 @@ const TYPES = {
             )
           : deparse(node.returnType),
         line,
-        `LANGUAGE '${deparse(elems.language.DefElem.arg)}'`,
+        `LANGUAGE '${deparse(language.DefElem.arg)}'`,
         line,
 
-        elems.volatility
-          ? deparse(elems.volatility.DefElem.arg).toUpperCase()
-          : "",
+        volatility ? deparse(volatility.DefElem.arg).toUpperCase() : "",
         "AS ",
-        escapeFunctionBody(deparse(elems.as.DefElem.arg[0])),
+        functionEscape,
+        deparse(functionBody), // TODO: print(...),
+        functionEscape,
       ])
     );
   },
@@ -1635,10 +1673,13 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["WindowDef"](node, context) {
+  ["WindowDef"](node) {
+    // TODO: fix this.
+    const isWindowContext = path.getParentNode().windowClause === node;
+
     const output = [];
 
-    if (context !== "window") {
+    if (!isWindowContext) {
       if (node.name) {
         output.push(node.name);
       }
@@ -1656,7 +1697,7 @@ const TYPES = {
 
     if (
       empty &&
-      context !== "window" &&
+      !isWindowContext &&
       !(node.name != null) &&
       frameOptions.length === 0
     ) {
@@ -1695,7 +1736,7 @@ const TYPES = {
       windowParts.push(frameOptions);
     }
 
-    if (useParens && context !== "window") {
+    if (useParens && !isWindowContext) {
       return output.join(" ") + " (" + windowParts.join(" ") + ")";
     }
 
