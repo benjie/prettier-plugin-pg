@@ -9,10 +9,8 @@ module.exports = (path, print, textToDoc, options) => {
   const node = path.getValue();
   if (node.DefElem && node.DefElem.defname === "as") {
     // This might be the function body!
-    console.log("Maybe...");
     const functionNode = path.getParentNode(1);
     if (functionNode.CreateFunctionStmt) {
-      console.log("YES!");
       const languageOption = functionNode.CreateFunctionStmt.options.find(
         option =>
           option && option.DefElem && option.DefElem.defname === "language"
@@ -20,7 +18,6 @@ module.exports = (path, print, textToDoc, options) => {
       const language = languageOption
         ? languageOption.DefElem.arg.String.str
         : fallbackToSql();
-      console.log(`YES! Language: ${language}`);
       const parser = {
         plv8: "js",
         plpython: "python",

@@ -1822,6 +1822,17 @@ const TYPES = {
 
     return output.join(" ");
   },
+
+  DefElem(path, options, print) {
+    const node = path.getValue();
+    if (node && node.defname === "as") {
+      return node.arg[0].String.str;
+    } else {
+      throw new Error(
+        "Do not understand this type of DefElem: " + JSON.stringify(node)
+      );
+    }
+  },
 };
 
 ////////////////////////////////////////////////////////////////////////////////
