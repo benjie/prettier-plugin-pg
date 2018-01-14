@@ -1704,7 +1704,11 @@ const TYPES = {
   },
 
   ["TypeCast"](path, options, print) {
-    return path.call(print, "arg") + "::" + path.call(print, "typeName");
+    return concat([
+      path.call(print, "arg"),
+      "::",
+      path.call(print, "typeName"),
+    ]);
   },
 
   ["TypeName"](path, options, print) {
@@ -1713,29 +1717,16 @@ const TYPES = {
       return deparseInterval(node);
     }
 
-    const output = [];
-
-    if (node.setof) {
-      output.push("SETOF");
-    }
-
     let args = null;
 
     if (node.typmods != null) {
       args = path.map(print, "typmods");
     }
-
-    const type = [];
-
-    type.push(getType(node.names, args && join(commaLine, args)));
-
-    if (node.arrayBounds != null) {
-      type.push("[]");
-    }
-
-    output.push(type.join(""));
-
-    return output.join(" ");
+    return concat([
+      node.setof ? concat(["SETOF", line]) : "",
+      getType(node.names, args ? join(commaLine, args) : null),
+      node.arrayBounds != null ? "[]" : "",
+    ]);
   },
 
   ["CaseWhen"](path, options, print) {

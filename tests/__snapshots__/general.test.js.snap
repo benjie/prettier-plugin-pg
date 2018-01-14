@@ -60,9 +60,13 @@ exports[`sEleCt 1; 1`] = `
 `;
 
 exports[`select 1;
-select 2; create function foo() returns text as $$ select 'hi'; $$ language sql; 1`] = `
+select 2; select '3'; select '4'::text; select '5'::int; select 1, '2', 3 as "three", 4 as four; create function foo() returns text as $$ select 'hi'; $$ language sql; 1`] = `
 "SELECT 1;
 SELECT 2;
+SELECT '3';
+SELECT '4'::text;
+SELECT '5'::int;
+SELECT 1, '2', 3 AS three, 4 AS four;
 CREATE FUNCTION foo() RETURNS text LANGUAGE 'sql' AS $$ select 'hi'; $$;
 "
 `;

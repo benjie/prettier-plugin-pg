@@ -32,7 +32,7 @@ function expectFail(code) {
 }
 
 check(`select 1;
-select 2; create function foo() returns text as $$ select 'hi'; $$ language sql;`);
+select 2; select '3'; select '4'::text; select '5'::int; select 1, '2', 3 as "three", 4 as four; create function foo() returns text as $$ select 'hi'; $$ language sql;`);
 check(`select 1;`);
 check("sEleCt 1;");
 check("sEleCt 1 from my_table;");
