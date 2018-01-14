@@ -12,6 +12,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 const { format } = require("util");
 
+const RESERVED_WORDS = require("./reservedWords");
+
 const _ = {
   keys: Object.keys,
   identity: val => val,
@@ -116,6 +118,26 @@ function quote(value) {
   return '"' + value + '"';
 }
 
+function isReserved(identString) {
+  return RESERVED_WORDS.indexOf(identString) >= 0;
+}
+
+function quoteIdent(value) {
+  if (value == null) {
+    return null;
+  }
+
+  if (_.isArray(value)) {
+    return value.map(o => quoteIdent(o));
+  }
+
+  if (value.match(/^[a-z_][a-z0-9_]*$/) && !isReserved(value)) {
+    return value;
+  }
+
+  return '"' + value + '"';
+}
+
 // SELECT encode(E'''123\\000\\001', 'base64')
 function escape(literal) {
   return "'" + literal.replace(/'/g, "''") + "'";
@@ -209,7 +231,6 @@ function deparse(item, context) {
   if (TYPES[type] == null) {
     throw new Error(type + " is not implemented");
   }
-  console.log(type, node);
 
   return TYPES[type](node, context);
 }
@@ -1059,11 +1080,11 @@ const TYPES = {
 
   ["ResTarget"](node, context) {
     if (context === "select") {
-      return compact([deparse(node.val), quote(node.name)]).join(" AS ");
+      return compact([deparse(node.val), quoteIdent(node.name)]).join(" AS ");
     } else if (context === "update") {
       return compact([node.name, deparse(node.val)]).join(" = ");
     } else if (!(node.val != null)) {
-      return quote(node.name);
+      return quoteIdent(node.name);
     }
 
     return fail("ResTarget", node);
@@ -1441,8 +1462,6 @@ const TYPES = {
         }
       }
     });
-
-    console.log(elems);
 
     output.push(`
 AS $$${deparse(elems.as.DefElem.arg[0])}$$
