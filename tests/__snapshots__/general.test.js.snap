@@ -4,7 +4,7 @@ exports[`sEleCt
 1     as       
        one     from     "Table"
        ; 1`] = `
-"SELECT 1 as one from "Table";
+"SELECT 1 AS one FROM "Table";
 "
 `;
 
