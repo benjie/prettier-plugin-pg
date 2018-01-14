@@ -281,11 +281,7 @@ module.exports = function print(path, options, print) {
   const n = path.getValue();
   if (Array.isArray(n)) {
     return n.length
-      ? concat(
-          path
-            .map(print)
-            .map(stmt => concat([group(concat([stmt, ";"])), hardline]))
-        )
+      ? join(hardline, path.map(print).map(stmt => group(concat([stmt, ";"]))))
       : "";
   }
   const item = path.getValue();
@@ -1596,13 +1592,7 @@ const TYPES = {
         ),
         "AS ",
         functionEscape,
-        group(
-          concat([
-            softline,
-            path.call(print, "options", functionBodyOptionIndex),
-            softline,
-          ])
-        ),
+        group(path.call(print, "options", functionBodyOptionIndex)),
         functionEscape,
       ])
     );
