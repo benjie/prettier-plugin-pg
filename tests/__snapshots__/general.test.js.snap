@@ -1,5 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`create function foo() returns text language plv8 as $$ var a = 1; var b = 2; return a + " + " + b+"="+(((a + b))); $$; 1`] = `
+"CREATE FUNCTION foo() RETURNS text LANGUAGE 'plv8' AS $$
+  var a = 1;
+  var b = 2;
+  return a + \\" + \\" + b + \\"=\\" + (a + b);
+
+$$;"
+`;
+
 exports[`sEleCt  
 1     as       
        one     from     "Table"

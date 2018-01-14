@@ -32,7 +32,7 @@ module.exports = (path, print, textToDoc, options) => {
         ? languageOption.DefElem.arg.String.str
         : fallbackToSql();
       const parser = {
-        plv8: "js",
+        plv8: "babylon",
         plpython: "python",
         plpythonu: "python",
         sql: "postgresql-sql",
@@ -42,7 +42,7 @@ module.exports = (path, print, textToDoc, options) => {
         const code = tidyLanguage(node.DefElem.arg[0].String.str, language);
         const doc = textToDoc(code, {
           parser,
-          __inPostgreSQLFunction: true,
+          //__inPostgreSQLFunction: true,
         });
         return concat([indent(concat([hardline, group(doc)])), hardline]);
       } else {

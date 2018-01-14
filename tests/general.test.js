@@ -51,3 +51,6 @@ check(`sEleCt
 1     as       
        one     from     "Table"
        ;`);
+check(
+  `create function foo() returns text language plv8 as $$ var a = 1; var b = 2; return a + " + " + b+"="+(((a + b))); $$;`
+);
