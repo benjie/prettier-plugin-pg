@@ -1535,60 +1535,74 @@ const TYPES = {
     const functionEscape = getFunctionBodyEscapeSequence(functionBody);
     return group(
       concat([
-        "CREATE ",
-        node.replace ? "OR REPLACE " : "",
-        "FUNCTION ",
-        join(".", node.funcname.map(deString).map(quoteIdent)),
-        softline,
-        "(",
         group(
-          join(
-            ",",
-            node.parameters
-              ? node.parameters
-                  .map((param, index) => {
-                    const { FunctionParameter } = param;
-                    if (FunctionParameter.mode === 105) {
-                      return path.call(print, "parameters", index);
-                    }
-                  })
-                  .filter(_ => _)
-              : []
-          )
-        ),
-        ")",
-        line,
-        "RETURNS",
-        line,
-        returns.length
-          ? group(
+          concat([
+            group(
               concat([
-                "TABLE(",
+                "CREATE ",
+                node.replace ? "OR REPLACE " : "",
+                "FUNCTION ",
+                join(".", node.funcname.map(deString).map(quoteIdent)),
+                softline,
+                "(",
                 group(
                   join(
-                    concat(",", line),
+                    ",",
                     node.parameters
-                      .map((param, index) => {
-                        const { FunctionParameter } = param;
-                        if (FunctionParameter.mode === 116) {
-                          return path.call(print, "parameters", index);
-                        }
-                      })
-                      .filter(_ => _)
+                      ? node.parameters
+                          .map((param, index) => {
+                            const { FunctionParameter } = param;
+                            if (FunctionParameter.mode === 105) {
+                              return path.call(print, "parameters", index);
+                            }
+                          })
+                          .filter(_ => _)
+                      : []
                   )
                 ),
                 ")",
               ])
-            )
-          : path.call(print, "returnType"),
-        line,
-        `LANGUAGE '${deString(language.DefElem.arg)}'`,
-        line,
+            ),
+            line,
+            "RETURNS",
+            line,
+            returns.length
+              ? group(
+                  concat([
+                    "TABLE(",
+                    group(
+                      join(
+                        concat(",", line),
+                        node.parameters
+                          .map((param, index) => {
+                            const { FunctionParameter } = param;
+                            if (FunctionParameter.mode === 116) {
+                              return path.call(print, "parameters", index);
+                            }
+                          })
+                          .filter(_ => _)
+                      )
+                    ),
+                    ")",
+                  ])
+                )
+              : path.call(print, "returnType"),
+            line,
+            `LANGUAGE '${deString(language.DefElem.arg)}'`,
+            line,
 
-        volatility ? deString(volatility.DefElem.arg).toUpperCase() : "",
+            volatility ? deString(volatility.DefElem.arg).toUpperCase() : "",
+          ])
+        ),
         "AS ",
         functionEscape,
-        path.call(print, "options", functionBodyOptionIndex),
+        group(
+          concat([
+            softline,
+            path.call(print, "options", functionBodyOptionIndex),
+            softline,
+          ])
+        ),
         functionEscape,
       ])
     );

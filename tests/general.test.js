@@ -1,6 +1,10 @@
 const prettier = require("prettier");
 
+const ONLY_FIRST = false;
+
+let first = true;
 function check(code) {
+  if (!first) return test(code);
   test(code, () => {
     const formattedCode = prettier.format(code, {
       parser: "postgresql-sql",
@@ -8,9 +12,11 @@ function check(code) {
     });
     expect(formattedCode).toMatchSnapshot();
   });
+  first = !ONLY_FIRST;
 }
 
 function expectFail(code) {
+  if (ONLY_FIRST) return test(code);
   test(code, () => {
     expect(() => {
       try {
