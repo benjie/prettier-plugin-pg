@@ -3,21 +3,45 @@
 exports[`sEleCt  
 1     as       
        one     from     "Table"
-       ; 1`] = `"SELECT 1 as one from "Table";"`;
+       ; 1`] = `
+"SELECT 1 as one from "Table";
+"
+`;
 
-exports[`sEleCt     1     as       one     from     "Table"; 1`] = `"SELECT 1 AS one FROM "Table";"`;
+exports[`sEleCt     1     as       one     from     "Table"; 1`] = `
+"SELECT 1 AS one FROM "Table";
+"
+`;
 
-exports[`sEleCt 1 from "Table"; 1`] = `"SELECT 1 FROM "Table";"`;
+exports[`sEleCt 1 from "Table"; 1`] = `
+"SELECT 1 FROM "Table";
+"
+`;
 
-exports[`sEleCt 1 from "table"; 1`] = `"SELECT 1 FROM table;"`;
+exports[`sEleCt 1 from "table"; 1`] = `
+"SELECT 1 FROM table;
+"
+`;
 
-exports[`sEleCt 1 from table; 1`] = `"SELECT 1 FROM table;"`;
+exports[`sEleCt 1 from table; 1`] = `
+"SELECT 1 FROM table;
+"
+`;
 
-exports[`sEleCt 1; 1`] = `"SELECT 1;"`;
+exports[`sEleCt 1; 1`] = `
+"SELECT 1;
+"
+`;
 
 exports[`select 1;
-select 2; create function foo() returns text as $$ select 'hi'; $$ language sql; 1`] = `"SELECT 1;
+select 2; create function foo() returns text as $$ select 'hi'; $$ language sql; 1`] = `
+"SELECT 1;
 SELECT 2;
-CREATE FUNCTION foo() RETURNS TEXT LANGUAGE SQL AS $$ SELECT 'hi'; $$;"`;
+CREATE FUNCTION foo() RETURNS TEXT LANGUAGE SQL AS $$ SELECT 'hi'; $$;
+"
+`;
 
-exports[`select 1; 1`] = `"SELECT 1;"`;
+exports[`select 1; 1`] = `
+"SELECT 1;
+"
+`;

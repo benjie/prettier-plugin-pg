@@ -38,13 +38,17 @@ function print(path, options, print) {
   }
 
   if (n.SelectStmt) {
-    return concat([
-      "SELECT",
-      line,
-      join(concat([",", line]), path.map(print, "SelectStmt", "targetList")),
-      // TODO: all the other parts
-      ";",
-    ]);
+    return group(
+      concat([
+        "SELECT",
+        line,
+        group(
+          join(concat([",", line]), path.map(print, "SelectStmt", "targetList"))
+        ),
+        // TODO: all the other parts
+        ";",
+      ])
+    );
   } else if (n.ResTarget) {
     const { val } = n.ResTarget;
     if (val) {

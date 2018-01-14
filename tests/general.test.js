@@ -1,15 +1,13 @@
 const prettier = require("prettier");
-let first = true;
 
 function check(code) {
-  (first ? test.only : test)(code, () => {
+  test(code, () => {
     const formattedCode = prettier.format(code, {
       parser: "postgresql-sql",
       plugins: ["./"],
     });
     expect(formattedCode).toMatchSnapshot();
   });
-  first = false;
 }
 
 check(`select 1;
