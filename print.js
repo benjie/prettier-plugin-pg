@@ -529,7 +529,7 @@ const TYPES = {
     if (node.colnames) {
       output.push(name + parens(list(node.colnames)));
     } else {
-      output.push(quote(name));
+      output.push(quoteIdent(name));
     }
 
     return output.join(" ");
@@ -663,7 +663,7 @@ const TYPES = {
   },
 
   ["ColumnDef"](node) {
-    const output = [quote(node.colname)];
+    const output = [quoteIdent(node.colname)];
 
     output.push(deparse(node.typeName));
 
@@ -682,7 +682,7 @@ const TYPES = {
   ["ColumnRef"](node) {
     const fields = node.fields.map(field => {
       if (field.String) {
-        return quote(deparse(field));
+        return quoteIdent(deparse(field));
       }
 
       return deparse(field);
@@ -697,7 +697,7 @@ const TYPES = {
     output.push(node.ctename);
 
     if (node.aliascolnames) {
-      output.push(format("(%s)", quote(deparseNodes(node.aliascolnames))));
+      output.push(format("(%s)", quoteIdent(deparseNodes(node.aliascolnames))));
     }
 
     output.push(format("AS (%s)", deparse(node.ctequery)));
@@ -881,7 +881,7 @@ const TYPES = {
     }
 
     if (node.usingClause) {
-      const using = quote(deparseNodes(node.usingClause)).join(", ");
+      const using = quoteIdent(deparseNodes(node.usingClause)).join(", ");
 
       output.push(`USING (${using})`);
     }
@@ -1065,11 +1065,11 @@ const TYPES = {
     }
 
     if (node.schemaname != null) {
-      output.push(quote(node.schemaname));
+      output.push(quoteIdent(node.schemaname));
       output.push(".");
     }
 
-    output.push(quote(node.relname));
+    output.push(quoteIdent(node.relname));
 
     if (node.alias) {
       output.push(deparse(node.alias));
@@ -1215,7 +1215,7 @@ const TYPES = {
         const window = [];
 
         if (w.WindowDef.name) {
-          window.push(quote(w.WindowDef.name) + " AS");
+          window.push(quoteIdent(w.WindowDef.name) + " AS");
         }
 
         window.push(parens(deparse(w, "window")));
