@@ -10,7 +10,7 @@ const {
   indent,
 } = require("prettier").doc.builders;
 
-const Deparser = require("./deparser");
+const print = require("./print");
 
 function unimp(o) {
   throw new Error("Unimplemented: \n" + JSON.stringify(o, null, 2));
@@ -24,53 +24,7 @@ function parse(text, _parsers, _options) {
   if (stderr.length) {
     throw new Error("Error occurred: " + stderr);
   }
-  console.log(query);
   return query;
-}
-
-function print(path, options, print) {
-  const n = path.getValue();
-  if (Array.isArray(n)) {
-    return n.length ? concat([join(hardline, path.map(print)), hardline]) : "";
-  }
-  if (!n) {
-    throw new Error("!n?!");
-  }
-
-  if (n.SelectStmt) {
-    return group(
-      concat([
-        "SELECT",
-        line,
-        group(
-          join(concat([",", line]), path.map(print, "SelectStmt", "targetList"))
-        ),
-        // TODO: all the other parts
-        ";",
-      ])
-    );
-  } else if (n.ResTarget) {
-    const { val } = n.ResTarget;
-    if (val) {
-      const { A_Const } = val;
-      if (A_Const) {
-        const { val } = A_Const;
-        if (val) {
-          const { Integer } = val;
-          if (Integer) {
-            return `${Integer.ival}`;
-          }
-        }
-      }
-    }
-    unimp(n);
-  } else {
-    //unimp(n);
-    return new Deparser().deparse(n);
-  }
-
-  console.log(n);
-  return concat([]);
 }
 
 function embed(path, print, textToDoc, options) {}
