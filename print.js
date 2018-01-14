@@ -130,6 +130,10 @@ function deparseNodes(nodes) {
   return nodes.map(node => deparse(node));
 }
 
+function deString(obj) {
+  return obj.String.str;
+}
+
 function list(nodes, separator = ", ") {
   if (!nodes) {
     return "";
@@ -225,20 +229,19 @@ function convertTypeName(typeName, size) {
 }
 
 function getType(astNames, args) {
-  console.log(require("util").inspect(astNames, { depth: 6 }));
   const names = astNames.map(name => name.String.str);
 
-  const mods = (name, size) => {
+  const mods = (nameDoc, size) => {
     if (size != null) {
-      return name + "(" + size + ")";
+      return concat([nameDoc, "(", size, ")"]);
     }
 
-    return name;
+    return nameDoc;
   };
 
   // handle the special "char" (in quotes) type
-  if (names[0].String.str === "char") {
-    names[0].String.str = '"char"';
+  if (names[0] === "char") {
+    names[0] = '"char"';
   }
 
   if (names[0] === "pg_catalog") {
@@ -249,7 +252,7 @@ function getType(astNames, args) {
 
     return mods(res, args);
   } else {
-    return mods(list(names, "."), args);
+    return mods(join(".", names), args);
   }
 }
 
@@ -279,7 +282,9 @@ module.exports = function print(path, options, print) {
   if (Array.isArray(n)) {
     return n.length
       ? concat(
-          path.map(print).map(stmt => group(concat([stmt, ";", hardline])))
+          path
+            .map(print)
+            .map(stmt => concat([group(concat([stmt, ";"])), hardline]))
         )
       : "";
   }
@@ -1158,14 +1163,19 @@ const TYPES = {
     const valDoc = path.call(print, "val");
     const identDoc = quoteIdent(node.name);
     if (contextNode.SelectStmt) {
-      return concat([valDoc || "", valDoc && identDoc ? " AS " : "", identDoc]);
+      if (!valDoc && !identDoc) {
+        throw new Error("Don't know what to SELECT!");
+      }
+      return concat([
+        valDoc || "",
+        valDoc && identDoc ? " AS " : "",
+        identDoc || "",
+      ]);
     } else if (contextNode.UpdateStmt) {
       return concat([identDoc, " = ", valDoc]);
-    } else if (!valDoc) {
+    } else if (identDoc && !valDoc) {
       return identDoc;
     }
-    console.log(require("util").inspect(path.stack, { depth: 6 }));
-    console.log(require("util").inspect(contextNode, { depth: 6 }));
 
     return fail("ResTarget", node);
   },
@@ -1521,16 +1531,15 @@ const TYPES = {
         }
       }
     });
-    console.log(as);
-    const functionBody = as.DefElem.arg[0];
+    const functionBody = as.DefElem.arg[0].String.str;
     // TODO: we need to do this on the result body, not the source body, in case it's been modified.
-    const functionEscape = getFunctionBodyEscapeSequence(deparse(functionBody));
+    const functionEscape = getFunctionBodyEscapeSequence(functionBody);
     return group(
       concat([
         "CREATE ",
         node.replace ? "OR REPLACE " : "",
         "FUNCTION ",
-        join(".", node.funcname.map(name => deparse(name))),
+        join(".", node.funcname.map(deString).map(quoteIdent)),
         softline,
         "(",
         group(
@@ -1538,10 +1547,13 @@ const TYPES = {
             ",",
             node.parameters
               ? node.parameters
-                  .filter(
-                    ({ FunctionParameter }) => FunctionParameter.mode === 105
-                  )
-                  .map(param => deparse(param))
+                  .map((param, index) => {
+                    const { FunctionParameter } = param;
+                    if (FunctionParameter.mode === 105) {
+                      return path.call(print, "parameters", index);
+                    }
+                  })
+                  .filter(_ => _)
               : []
           )
         ),
@@ -1557,25 +1569,27 @@ const TYPES = {
                   join(
                     concat(",", line),
                     node.parameters
-                      .filter(
-                        ({ FunctionParameter }) =>
-                          FunctionParameter.mode === 116
-                      )
-                      .map(param => deparse(param))
+                      .map((param, index) => {
+                        const { FunctionParameter } = param;
+                        if (FunctionParameter.mode === 116) {
+                          return path.call(print, "parameters", index);
+                        }
+                      })
+                      .filter(_ => _)
                   )
                 ),
                 ")",
               ])
             )
-          : deparse(node.returnType),
+          : path.call(print, "returnType"),
         line,
-        `LANGUAGE '${deparse(language.DefElem.arg)}'`,
+        `LANGUAGE '${deString(language.DefElem.arg)}'`,
         line,
 
-        volatility ? deparse(volatility.DefElem.arg).toUpperCase() : "",
+        volatility ? deString(volatility.DefElem.arg).toUpperCase() : "",
         "AS ",
         functionEscape,
-        deparse(functionBody), // TODO: print(...),
+        functionBody, // TODO: print(...),
         functionEscape,
       ])
     );
