@@ -11,6 +11,7 @@ const {
 } = require("prettier").doc.builders;
 
 const print = require("./print");
+const embed = require("./embed");
 
 function unimp(o) {
   throw new Error("Unimplemented: \n" + JSON.stringify(o, null, 2));
@@ -26,8 +27,6 @@ function parse(text, _parsers, _options) {
   }
   return query;
 }
-
-function embed(path, print, textToDoc, options) {}
 
 const languages = [
   {
@@ -47,7 +46,7 @@ const parsers = {
 const printers = {
   "postgresql-sql-ast": {
     print,
-    //embed,
+    embed,
   },
 };
 

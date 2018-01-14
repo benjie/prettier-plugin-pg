@@ -1506,13 +1506,12 @@ const TYPES = {
     // );
     let volatility, language, as;
 
-    let functionBodyPath;
-
-    node.options.forEach(option => {
+    let functionBodyOptionIndex;
+    node.options.forEach((option, index) => {
       if (option && option.DefElem) {
         switch (option.DefElem.defname) {
           case "as":
-            functionBodyPath = path;
+            functionBodyOptionIndex = index;
             as = option;
             break;
 
@@ -1589,7 +1588,7 @@ const TYPES = {
         volatility ? deString(volatility.DefElem.arg).toUpperCase() : "",
         "AS ",
         functionEscape,
-        functionBody, // TODO: print(...),
+        path.call(print, "options", functionBodyOptionIndex),
         functionEscape,
       ])
     );
