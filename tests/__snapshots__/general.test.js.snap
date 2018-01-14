@@ -23,8 +23,8 @@ exports[`sEleCt 1 from "table"; 1`] = `
 "
 `;
 
-exports[`sEleCt 1 from table; 1`] = `
-"SELECT 1 FROM table;
+exports[`sEleCt 1 from my_table; 1`] = `
+"SELECT 1 FROM my_table;
 "
 `;
 
