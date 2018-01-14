@@ -18,6 +18,11 @@ exports[`sEleCt 1 from "Table"; 1`] = `
 "
 `;
 
+exports[`sEleCt 1 from "my_table"; 1`] = `
+"SELECT 1 FROM my_table;
+"
+`;
+
 exports[`sEleCt 1 from "table"; 1`] = `
 "SELECT 1 FROM \\"table\\";
 "
@@ -28,9 +33,25 @@ exports[`sEleCt 1 from my_table; 1`] = `
 "
 `;
 
-exports[`sEleCt 1 from "my_table"; 1`] = `
-"SELECT 1 FROM my_table;
-"
+exports[`sEleCt 1 from table; 1`] = `
+"Error: syntax error at or near \\"table\\"
+    at parse (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/pg-query-native/index.js:12:17)
+    at Object.parse (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/index.js:20:36)
+    at Object.parse$4 [as parse] (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/prettier/index.js:24274:19)
+    at formatWithCursor (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/prettier/index.js:33650:27)
+    at format (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/prettier/index.js:33695:10)
+    at Object.format (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/prettier/index.js:33945:12)
+    at expect (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/tests/general.test.js:17:18)
+    at Object.toThrowErrorMatchingSnapshot (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/jest-snapshot/build/index.js:136:7)
+    at Object.throwingMatcher [as toThrowErrorMatchingSnapshot] (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/expect/build/index.js:215:24)
+    at Object.test (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/tests/general.test.js:30:8)
+    at Object.asyncFn (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/jest-jasmine2/build/jasmine_async.js:129:432)
+    at resolve (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/jest-jasmine2/build/queue_runner.js:51:12)
+    at new Promise (<anonymous>)
+    at mapper (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/jest-jasmine2/build/queue_runner.js:40:274)
+    at promise.then (/Users/benjiegillam/Documents/prettier-plugin-pg-sql/node_modules/jest-jasmine2/build/queue_runner.js:83:39)
+    at <anonymous>
+    at process._tickCallback (internal/process/next_tick.js:188:7)"
 `;
 
 exports[`sEleCt 1; 1`] = `
