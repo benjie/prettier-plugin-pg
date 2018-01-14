@@ -29,6 +29,10 @@ const _ = {
   },
 };
 
+function assertEmptyObject(obj) {
+  return Object.keys(obj).length === 0;
+}
+
 const CONSTRAINT_TYPES = [
   "NULL",
   "NOT NULL",
@@ -926,35 +930,57 @@ module.exports = class Deparser {
 
   ["SelectStmt"](node, context) {
     const output = [];
+    const {
+      withClause,
+      op,
+      all,
+      valuesLists,
+      larg,
+      rarg,
+      distinctClause,
+      targetList,
+      intoClause,
+      fromClause,
+      whereClause,
+      groupClause,
+      havingClause,
+      windowClause,
+      sortClause,
+      limitCount,
+      limitOffset,
+      lockingClause,
+      ...rest
+    } = node;
+    assertEmptyObject(rest);
 
-    if (node.withClause) {
-      output.push(this.deparse(node.withClause));
+    if (withClause) {
+      output.push(this.deparse(withClause));
     }
 
-    if (node.op === 0) {
+    if (op === 0) {
       // VALUES select's don't get SELECT
-      if (node.valuesLists == null) {
+      if (valuesLists == null) {
         output.push("SELECT");
       }
     } else {
-      output.push(parens(this.deparse(node.larg)));
+      output.push(parens(this.deparse(larg)));
 
       const sets = ["NONE", "UNION", "INTERSECT", "EXCEPT"];
 
-      output.push(sets[node.op]);
+      output.push(sets[op]);
 
-      if (node.all) {
+      if (all) {
         output.push("ALL");
       }
 
-      output.push(parens(this.deparse(node.rarg)));
+      output.push(parens(this.deparse(rarg)));
     }
 
-    if (node.distinctClause) {
-      if (node.distinctClause[0] != null) {
+    if (distinctClause) {
+      if (distinctClause[0] != null) {
         output.push("DISTINCT ON");
 
-        const clause = node.distinctClause
+        const clause = distinctClause
           .map(e => this.deparse(e, "select"))
           .join(",\n");
 
@@ -964,58 +990,58 @@ module.exports = class Deparser {
       }
     }
 
-    if (node.targetList) {
+    if (targetList) {
       output.push(
-        indent(node.targetList.map(e => this.deparse(e, "select")).join(",\n"))
+        indent(targetList.map(e => this.deparse(e, "select")).join(",\n"))
       );
     }
 
-    if (node.intoClause) {
+    if (intoClause) {
       output.push("INTO");
-      output.push(indent(this.deparse(node.intoClause)));
+      output.push(indent(this.deparse(intoClause)));
     }
 
-    if (node.fromClause) {
+    if (fromClause) {
       output.push("FROM");
       output.push(
-        indent(node.fromClause.map(e => this.deparse(e, "from")).join(",\n"))
+        indent(fromClause.map(e => this.deparse(e, "from")).join(",\n"))
       );
     }
 
-    if (node.whereClause) {
+    if (whereClause) {
       output.push("WHERE");
-      output.push(indent(this.deparse(node.whereClause)));
+      output.push(indent(this.deparse(whereClause)));
     }
 
-    if (node.valuesLists) {
+    if (valuesLists) {
       output.push("VALUES");
 
-      const lists = node.valuesLists.map(list => {
+      const lists = valuesLists.map(list => {
         return `(${list.map(v => this.deparse(v)).join(", ")})`;
       });
 
       output.push(lists.join(", "));
     }
 
-    if (node.groupClause) {
+    if (groupClause) {
       output.push("GROUP BY");
       output.push(
-        indent(node.groupClause.map(e => this.deparse(e, "group")).join(",\n"))
+        indent(groupClause.map(e => this.deparse(e, "group")).join(",\n"))
       );
     }
 
-    if (node.havingClause) {
+    if (havingClause) {
       output.push("HAVING");
-      output.push(indent(this.deparse(node.havingClause)));
+      output.push(indent(this.deparse(havingClause)));
     }
 
-    if (node.windowClause) {
+    if (windowClause) {
       output.push("WINDOW");
 
       const windows = [];
 
-      for (let i = 0; i < node.windowClause.length; i++) {
-        const w = node.windowClause[i];
+      for (let i = 0; i < windowClause.length; i++) {
+        const w = windowClause[i];
         const window = [];
 
         if (w.WindowDef.name) {
@@ -1030,25 +1056,25 @@ module.exports = class Deparser {
       output.push(windows.join(", "));
     }
 
-    if (node.sortClause) {
+    if (sortClause) {
       output.push("ORDER BY");
       output.push(
-        indent(node.sortClause.map(e => this.deparse(e, "sort")).join(",\n"))
+        indent(sortClause.map(e => this.deparse(e, "sort")).join(",\n"))
       );
     }
 
-    if (node.limitCount) {
+    if (limitCount) {
       output.push("LIMIT");
-      output.push(indent(this.deparse(node.limitCount)));
+      output.push(indent(this.deparse(limitCount)));
     }
 
-    if (node.limitOffset) {
+    if (limitOffset) {
       output.push("OFFSET");
-      output.push(indent(this.deparse(node.limitOffset)));
+      output.push(indent(this.deparse(limitOffset)));
     }
 
-    if (node.lockingClause) {
-      node.lockingClause.forEach(item => {
+    if (lockingClause) {
+      lockingClause.forEach(item => {
         return output.push(this.deparse(item));
       });
     }
@@ -1271,9 +1297,11 @@ module.exports = class Deparser {
 
     output.push(`
 AS $$${this.deparse(elems.as.DefElem.arg[0])}$$
-LANGUAGE '${this.deparse(elems.language.DefElem.arg)}' ${elems.volatility
-      ? this.deparse(elems.volatility.DefElem.arg).toUpperCase()
-      : ""};
+LANGUAGE '${this.deparse(elems.language.DefElem.arg)}' ${
+      elems.volatility
+        ? this.deparse(elems.volatility.DefElem.arg).toUpperCase()
+        : ""
+    };
 `);
 
     return output.join(" ");
