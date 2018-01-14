@@ -69,6 +69,8 @@ const {
   indent,
 } = require("prettier").doc.builders;
 
+const commaLine = concat([",", line]);
+
 function assertEmptyObject(obj) {
   return Object.keys(obj).length === 0;
 }
@@ -120,8 +122,8 @@ const fail = (type, node) => {
   throw new Error(format("Unhandled %s node: %s", type, JSON.stringify(node)));
 };
 
-const parens = string => {
-  return "(" + string + ")";
+const parens = doc => {
+  return concat(["(", doc, ")"]);
 };
 
 function deparseNodes(nodes) {
@@ -137,6 +139,7 @@ function list(nodes, separator = ", ") {
 }
 
 function quote(value) {
+  console.warn("DEPRECATED call to `quote` - use `quoteIdent` if appropriate.");
   if (value == null) {
     return null;
   }
@@ -221,8 +224,9 @@ function convertTypeName(typeName, size) {
   }
 }
 
-function getType(names, args) {
-  const [catalog, type] = names.map(name => deparse(name));
+function getType(astNames, args) {
+  console.log(require("util").inspect(astNames, { depth: 6 }));
+  const names = astNames.map(name => name.String.str);
 
   const mods = (name, size) => {
     if (size != null) {
@@ -237,16 +241,21 @@ function getType(names, args) {
     names[0].String.str = '"char"';
   }
 
-  if (catalog !== "pg_catalog") {
+  if (names[0] === "pg_catalog") {
+    if (names.length !== 2) {
+      throw new Error(`Cannot yet understand type '${names.join(".")}'`);
+    }
+    const res = convertTypeName(names[1], args);
+
+    return mods(res, args);
+  } else {
     return mods(list(names, "."), args);
   }
-
-  const res = convertTypeName(type, args);
-
-  return mods(res, args);
 }
 
 function deparse(item) {
+  debugger;
+  throw new Error("No more deparse!");
   if (item == null) {
     return null;
   }
@@ -267,25 +276,27 @@ function deparse(item) {
 
 module.exports = function print(path, options, print) {
   const n = path.getValue();
-  if (!Array.isArray(n)) {
-    throw new Error("Expected an array of SQL AST nodes");
+  if (Array.isArray(n)) {
+    return n.length
+      ? concat(
+          path.map(print).map(stmt => group(concat([stmt, ";", hardline])))
+        )
+      : "";
   }
-  return n.length
-    ? concat([
-        join(
-          hardline,
-          n.map(statement => {
-            const output = deparse(statement);
-            if (output) {
-              return concat([output, ";"]);
-            } else {
-              return output;
-            }
-          })
-        ),
-        hardline,
-      ])
-    : "";
+  const item = path.getValue();
+  if (item == null) {
+    return null;
+  }
+
+  const type = getOnlyKey(item);
+
+  if (TYPES[type] == null) {
+    throw new Error(type + " is not implemented");
+  }
+
+  return path.call(innerPath => {
+    return TYPES[type](innerPath, options, print);
+  }, type);
 };
 
 function deparseFrameOptions(options, refName, startOffset, endOffset) {
@@ -413,7 +424,8 @@ function deparseInterval(node) {
 }
 
 const TYPES = {
-  ["A_Expr"](node) {
+  ["A_Expr"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     switch (node.kind) {
@@ -551,7 +563,8 @@ const TYPES = {
     }
   },
 
-  ["Alias"](node) {
+  ["Alias"](path, options, print) {
+    const node = path.getValue();
     const name = node.aliasname;
 
     const output = ["AS"];
@@ -565,19 +578,22 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["A_ArrayExpr"](node) {
+  ["A_ArrayExpr"](path, options, print) {
+    const node = path.getValue();
     return format("ARRAY[%s]", list(node.elements));
   },
 
-  ["A_Const"](node) {
+  ["A_Const"](path, options, print) {
+    const node = path.getValue();
     if (node.val.String) {
-      return escape(deparse(node.val));
+      return escape(node.val.String.str);
     }
 
-    return deparse(node.val);
+    return path.call(print, "val");
   },
 
-  ["A_Indices"](node) {
+  ["A_Indices"](path, options, print) {
+    const node = path.getValue();
     if (node.lidx) {
       return format("[%s:%s]", deparse(node.lidx), deparse(node.uidx));
     }
@@ -585,7 +601,8 @@ const TYPES = {
     return format("[%s]", deparse(node.uidx));
   },
 
-  ["A_Indirection"](node) {
+  ["A_Indirection"](path, options, print) {
+    const node = path.getValue();
     const output = [`(${deparse(node.arg)})`];
 
     // TODO(zhm) figure out the actual rules for when a '.' is needed
@@ -610,16 +627,19 @@ const TYPES = {
     return output.join("");
   },
 
-  ["A_Star"](node) {
+  ["A_Star"](path, options, print) {
+    const node = path.getValue();
     return "*";
   },
 
-  ["BitString"](node) {
+  ["BitString"](path, options, print) {
+    const node = path.getValue();
     const prefix = node.str[0];
     return `${prefix}'${node.str.substring(1)}'`;
   },
 
-  ["BoolExpr"](node) {
+  ["BoolExpr"](path, options, print) {
+    const node = path.getValue();
     switch (node.boolop) {
       case 0:
         return parens(list(node.args, " AND "));
@@ -632,7 +652,8 @@ const TYPES = {
     }
   },
 
-  ["BooleanTest"](node) {
+  ["BooleanTest"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     output.push(deparse(node.arg));
@@ -651,7 +672,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["CaseExpr"](node) {
+  ["CaseExpr"](path, options, print) {
+    const node = path.getValue();
     const output = ["CASE"];
 
     if (node.arg) {
@@ -672,11 +694,13 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["CoalesceExpr"](node) {
+  ["CoalesceExpr"](path, options, print) {
+    const node = path.getValue();
     return format("COALESCE(%s)", list(node.args));
   },
 
-  ["CollateClause"](node) {
+  ["CollateClause"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     if (node.arg) {
@@ -692,7 +716,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["ColumnDef"](node) {
+  ["ColumnDef"](path, options, print) {
+    const node = path.getValue();
     const output = [quoteIdent(node.colname)];
 
     output.push(deparse(node.typeName));
@@ -709,10 +734,11 @@ const TYPES = {
     return _.compact(output).join(" ");
   },
 
-  ["ColumnRef"](node) {
+  ["ColumnRef"](path, options, print) {
+    const node = path.getValue();
     const fields = node.fields.map(field => {
       if (field.String) {
-        return quoteIdent(deparse(field));
+        return quoteIdent(field.String.str);
       }
 
       return deparse(field);
@@ -721,7 +747,8 @@ const TYPES = {
     return fields.join(".");
   },
 
-  ["CommonTableExpr"](node) {
+  ["CommonTableExpr"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     output.push(node.ctename);
@@ -735,7 +762,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["Float"](node) {
+  ["Float"](path, options, print) {
+    const node = path.getValue();
     // wrap negative numbers in parens, SELECT (-2147483648)::int4 * (-1)::int4
     if (node.str[0] === "-") {
       return `(${node.str})`;
@@ -744,7 +772,8 @@ const TYPES = {
     return node.str;
   },
 
-  ["FuncCall"](node) {
+  ["FuncCall"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     let params = [];
@@ -812,11 +841,13 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["GroupingFunc"](node) {
+  ["GroupingFunc"](path, options, print) {
+    const node = path.getValue();
     return "GROUPING(" + list(node.args) + ")";
   },
 
-  ["GroupingSet"](node) {
+  ["GroupingSet"](path, options, print) {
+    const node = path.getValue();
     switch (node.kind) {
       case 0: // GROUPING_SET_EMPTY
         return "()";
@@ -838,7 +869,8 @@ const TYPES = {
     }
   },
 
-  ["Integer"](node) {
+  ["Integer"](path, options, print) {
+    const node = path.getValue();
     if (node.ival < 0) {
       return `(${node.ival})`;
     }
@@ -846,11 +878,13 @@ const TYPES = {
     return node.ival.toString();
   },
 
-  ["IntoClause"](node) {
+  ["IntoClause"](path, options, print) {
+    const node = path.getValue();
     return deparse(node.rel);
   },
 
-  ["JoinExpr"](node) {
+  ["JoinExpr"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     output.push(deparse(node.larg));
@@ -928,7 +962,8 @@ const TYPES = {
     return wrapped;
   },
 
-  ["LockingClause"](node) {
+  ["LockingClause"](path, options, print) {
+    const node = path.getValue();
     const strengths = [
       "NONE", // LCS_NONE
       "FOR KEY SHARE",
@@ -949,7 +984,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["MinMaxExpr"](node) {
+  ["MinMaxExpr"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     if (node.op === 0) {
@@ -963,7 +999,8 @@ const TYPES = {
     return output.join("");
   },
 
-  ["NamedArgExpr"](node) {
+  ["NamedArgExpr"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     output.push(node.name);
@@ -973,11 +1010,13 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["Null"](node) {
+  ["Null"](path, options, print) {
+    const node = path.getValue();
     return "NULL";
   },
 
-  ["NullTest"](node) {
+  ["NullTest"](path, options, print) {
+    const node = path.getValue();
     const output = [deparse(node.arg)];
 
     if (node.nulltesttype === 0) {
@@ -989,14 +1028,16 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["ParamRef"](node) {
+  ["ParamRef"](path, options, print) {
+    const node = path.getValue();
     if (node.number >= 0) {
       return ["$", node.number].join("");
     }
     return "?";
   },
 
-  ["RangeFunction"](node) {
+  ["RangeFunction"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     if (node.lateral) {
@@ -1045,7 +1086,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["RangeSubselect"](node) {
+  ["RangeSubselect"](path, options, print) {
+    const node = path.getValue();
     let output = "";
 
     if (node.lateral) {
@@ -1061,7 +1103,8 @@ const TYPES = {
     return output;
   },
 
-  ["RangeTableSample"](node) {
+  ["RangeTableSample"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     output.push(deparse(node.relation));
@@ -1079,7 +1122,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["RangeVar"](node) {
+  ["RangeVar"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     if (node.inhOpt === 0) {
@@ -1108,20 +1152,26 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["ResTarget"](node) {
-    const parentNode = path.getParentNode();
-    if (parentNode.SelectStmt) {
-      return compact([deparse(node.val), quoteIdent(node.name)]).join(" AS ");
-    } else if (parentNode.UpdateStmt) {
-      return compact([node.name, deparse(node.val)]).join(" = ");
-    } else if (node.val == null) {
-      return quoteIdent(node.name);
+  ["ResTarget"](path, options, print) {
+    const node = path.getValue();
+    const contextNode = getContextNodeFromPath(path);
+    const valDoc = path.call(print, "val");
+    const identDoc = quoteIdent(node.name);
+    if (contextNode.SelectStmt) {
+      return concat([valDoc || "", valDoc && identDoc ? " AS " : "", identDoc]);
+    } else if (contextNode.UpdateStmt) {
+      return concat([identDoc, " = ", valDoc]);
+    } else if (!valDoc) {
+      return identDoc;
     }
+    console.log(require("util").inspect(path.stack, { depth: 6 }));
+    console.log(require("util").inspect(contextNode, { depth: 6 }));
 
     return fail("ResTarget", node);
   },
 
-  ["RowExpr"](node) {
+  ["RowExpr"](path, options, print) {
+    const node = path.getValue();
     if (node.row_format === 2) {
       return parens(list(node.args));
     }
@@ -1129,7 +1179,8 @@ const TYPES = {
     return format("ROW(%s)", list(node.args));
   },
 
-  ["SelectStmt"](node) {
+  ["SelectStmt"](path, options, print) {
+    const node = path.getValue();
     const output = [];
     const {
       withClause,
@@ -1155,7 +1206,7 @@ const TYPES = {
     assertEmptyObject(rest);
 
     if (withClause) {
-      output.push(deparse(withClause));
+      output.push(path.call(print, "withClause"));
     }
 
     if (op === 0) {
@@ -1164,7 +1215,7 @@ const TYPES = {
         output.push("SELECT");
       }
     } else {
-      output.push(parens(deparse(larg)));
+      output.push(parens(path.call(print, "larg")));
 
       const sets = ["NONE", "UNION", "INTERSECT", "EXCEPT"];
 
@@ -1174,66 +1225,68 @@ const TYPES = {
         output.push("ALL");
       }
 
-      output.push(parens(deparse(rarg)));
+      output.push(parens(path.call(print, "rarg")));
     }
 
     if (distinctClause) {
-      if (distinctClause[0] != null) {
-        output.push("DISTINCT ON");
-
-        const clause = distinctClause
-          .map(e => deparse(e, "select"))
-          .join(",\n");
-
-        output.push(`(${clause})`);
-      } else {
+      if (!distinctClause.length || distinctClause[0] == null) {
         output.push("DISTINCT");
+      } else {
+        output.push(
+          concat([
+            "(",
+            softline,
+            group(join(concat(",", line), path.map(print, "distinctClause"))),
+            softline,
+            ")",
+          ])
+        );
       }
     }
 
     if (targetList) {
-      output.push(
-        oldIndent(targetList.map(e => deparse(e, "select")).join(",\n"))
-      );
+      output.push(group(join(commaLine, path.map(print, "targetList"))));
     }
 
     if (intoClause) {
       output.push("INTO");
-      output.push(oldIndent(deparse(intoClause)));
+      output.push(indent(path.call(print, "intoClause")));
     }
 
     if (fromClause) {
       output.push("FROM");
-      output.push(
-        oldIndent(fromClause.map(e => deparse(e, "from")).join(",\n"))
-      );
+      output.push(indent(join(commaLine, path.map(print, "fromClause"))));
     }
 
     if (whereClause) {
       output.push("WHERE");
-      output.push(oldIndent(deparse(whereClause)));
+      output.push(indent(path.call(print, "whereClause")));
     }
 
     if (valuesLists) {
       output.push("VALUES");
-
-      const lists = valuesLists.map(list => {
-        return `(${list.map(v => deparse(v)).join(", ")})`;
-      });
-
-      output.push(lists.join(", "));
+      output.push(
+        join(
+          commaLine,
+          valuesLists.map((list, index) => {
+            return concat([
+              "(",
+              join(commaLine, path.map(print, "valuesList", index)),
+              ")",
+            ]);
+          })
+        )
+      );
     }
 
     if (groupClause) {
       output.push("GROUP BY");
-      output.push(
-        oldIndent(groupClause.map(e => deparse(e, "group")).join(",\n"))
-      );
+      output.push(indent(join(commaLine, path.map(print, "groupClause"))));
     }
 
     if (havingClause) {
       output.push("HAVING");
-      output.push(oldIndent(deparse(havingClause)));
+      output.push(indent(path.call(print, "havingClause")));
     }
 
     if (windowClause) {
@@ -1249,7 +1302,7 @@ const TYPES = {
           window.push(quoteIdent(w.WindowDef.name) + " AS");
         }
 
-        window.push(parens(deparse(w, "window")));
+        window.push(parens(path.call(print, "windowClause", i)));
 
         windows.push(window.join(" "));
       }
@@ -1259,31 +1312,28 @@ const TYPES = {
 
     if (sortClause) {
       output.push("ORDER BY");
-      output.push(
-        oldIndent(sortClause.map(e => deparse(e, "sort")).join(",\n"))
-      );
+      output.push(indent(join(commaLine, path.map(print, "sortClause"))));
     }
 
     if (limitCount) {
       output.push("LIMIT");
-      output.push(oldIndent(deparse(limitCount)));
+      output.push(indent(path.call(print, "limitCount")));
     }
 
     if (limitOffset) {
       output.push("OFFSET");
-      output.push(oldIndent(deparse(limitOffset)));
+      output.push(indent(path.call(print, "limitOffset")));
     }
 
     if (lockingClause) {
-      lockingClause.forEach(item => {
-        return output.push(deparse(item));
-      });
+      output.push(join(line, path.map(print, "lockingClause")));
     }
 
-    return output.join(" ");
+    return join(line, output);
   },
 
-  ["CreateStmt"](node) {
+  ["CreateStmt"](path, options, print) {
+    const node = path.getValue();
     const output = [];
     output.push("CREATE TABLE");
     output.push(deparse(node.relation));
@@ -1294,7 +1344,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["ConstraintStmt"](node) {
+  ["ConstraintStmt"](path, options, print) {
+    const node = path.getValue();
     const output = [];
     const constraint = CONSTRAINT_TYPES[node.contype];
 
@@ -1307,7 +1358,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["ReferenceConstraint"](node) {
+  ["ReferenceConstraint"](path, options, print) {
+    const node = path.getValue();
     const output = [];
     if (node.pk_attrs && node.fk_attrs) {
       output.push("FOREIGN KEY");
@@ -1332,7 +1384,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["ExclusionConstraint"](node) {
+  ["ExclusionConstraint"](path, options, print) {
+    const node = path.getValue();
     const output = [];
     function getExclusionGroup(node) {
       var output = [];
@@ -1365,7 +1418,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["Constraint"](node) {
+  ["Constraint"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     const constraint = CONSTRAINT_TYPES[node.contype];
@@ -1420,7 +1474,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["FunctionParameter"](node) {
+  ["FunctionParameter"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     output.push(node.name);
@@ -1429,7 +1484,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["CreateFunctionStmt"](node) {
+  ["CreateFunctionStmt"](path, options, print) {
+    const node = path.getValue();
     const returns = node.parameters
       ? node.parameters.filter(
           ({ FunctionParameter }) => FunctionParameter.mode === 116
@@ -1525,7 +1581,8 @@ const TYPES = {
     );
   },
 
-  ["CreateSchemaStmt"](node) {
+  ["CreateSchemaStmt"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     output.push("CREATE");
@@ -1537,7 +1594,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["TransactionStmt"](node) {
+  ["TransactionStmt"](path, options, print) {
+    const node = path.getValue();
     switch (node.kind) {
       case 0:
         return "BEGIN";
@@ -1550,7 +1608,8 @@ const TYPES = {
     }
   },
 
-  ["SortBy"](node) {
+  ["SortBy"](path, options, print) {
+    const node = path.getValue();
     const output = [];
 
     output.push(deparse(node.node));
@@ -1578,11 +1637,14 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["String"](node) {
-    return node.str;
+  ["String"](path, options, print) {
+    throw new Error(
+      "Do *NOT* call String directly - we don't know which quotes to use!"
+    );
   },
 
-  ["SubLink"](node) {
+  ["SubLink"](path, options, print) {
+    const node = path.getValue();
     switch (true) {
       case node.subLinkType === 0:
         return format("EXISTS (%s)", deparse(node.subselect));
@@ -1627,11 +1689,12 @@ const TYPES = {
     }
   },
 
-  ["TypeCast"](node) {
-    return deparse(node.arg) + "::" + deparse(node.typeName);
+  ["TypeCast"](path, options, print) {
+    return path.call(print, "arg") + "::" + path.call(print, "typeName");
   },
 
-  ["TypeName"](node) {
+  ["TypeName"](path, options, print) {
+    const node = path.getValue();
     if (_.last(node.names).String.str === "interval") {
       return deparseInterval(node);
     }
@@ -1645,14 +1708,12 @@ const TYPES = {
     let args = null;
 
     if (node.typmods != null) {
-      args = node.typmods.map(item => {
-        return deparse(item);
-      });
+      args = path.map(print, "typmods");
     }
 
     const type = [];
 
-    type.push(getType(node.names, args && args.join(", ")));
+    type.push(getType(node.names, args && join(commaLine, args)));
 
     if (node.arrayBounds != null) {
       type.push("[]");
@@ -1663,7 +1724,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["CaseWhen"](node) {
+  ["CaseWhen"](path, options, print) {
+    const node = path.getValue();
     const output = ["WHEN"];
 
     output.push(deparse(node.expr));
@@ -1673,7 +1735,8 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["WindowDef"](node) {
+  ["WindowDef"](path, options, print) {
+    const node = path.getValue();
     // TODO: fix this.
     const isWindowContext = path.getParentNode().windowClause === node;
 
@@ -1743,7 +1806,8 @@ const TYPES = {
     return output.join(" ") + windowParts.join(" ");
   },
 
-  ["WithClause"](node) {
+  ["WithClause"](path, options, print) {
+    const node = path.getValue();
     const output = ["WITH"];
 
     if (node.recursive) {
