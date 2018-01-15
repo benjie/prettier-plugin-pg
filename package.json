@@ -1,6 +1,6 @@
 {
   "name": "prettier-plugin-pg-sql",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "A prettier plugin for formatting PostgreSQL-flavour SQL",
   "main": "index.js",
   "scripts": {
@@ -32,5 +32,11 @@
   },
   "dependencies": {
     "pg-query-native": "1.1.0"
-  }
+  },
+  "files": [
+    "index.js",
+    "embed.js",
+    "print.js",
+    "reservedWords.js"
+  ]
 }
