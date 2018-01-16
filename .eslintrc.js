@@ -44,7 +44,7 @@ module.exports = {
     "no-unused-vars": [
       2,
       {
-        argsIgnorePattern: "^_",
+        argsIgnorePattern: "^_|^print$|^options$",
       },
     ],
     "no-restricted-syntax": 0,
