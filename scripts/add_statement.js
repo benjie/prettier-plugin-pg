@@ -3,7 +3,7 @@ const fs = require("fs");
 
 const arg = process.argv[2];
 
-if (!arg.match(/^[A-Z][a-z]+Stmt$/)) {
+if (!arg.match(/^[A-Z][a-zA-Z]+Stmt$/)) {
   throw new Error("Invalid statement? Expected FooStmt or similar");
 }
 

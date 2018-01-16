@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`simple.sql - postgresql-verify: simple.sql 1`] = `
+create function foo() returns text as $$ select 'hi'; $$ language sql;
+create function foo() returns text language plv8 as $$ var a = 1; var b = 2; return a + " + " + b+"="+(((a + b))); $$;
+create function foo() returns text language plv8 as $$
+var a = 1;
+  var b = 2;
+  return a + " + " +
+b+"="+(((a + b)));
+$$;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CREATE FUNCTION foo() RETURNS text LANGUAGE 'sql' AS $$
+  SELECT 'hi';
+$$;
+CREATE FUNCTION foo() RETURNS text LANGUAGE 'plv8' AS $$
+  var a = 1;
+  var b = 2;
+  return a + " + " + b + "=" + (a + b);
+
+$$;
+CREATE FUNCTION foo() RETURNS text LANGUAGE 'plv8' AS $$
+  var a = 1;
+  var b = 2;
+  return a + " + " + b + "=" + (a + b);
+
+$$;
+`;
