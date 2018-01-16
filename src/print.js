@@ -54,25 +54,25 @@ function getFunctionBodyEscapeSequence(text) {
   throw new Error("Could not find an acceptable function escape sequence");
 }
 
-function oldIndent(str) {
-  return str;
-}
-
 const {
   concat,
   join,
   hardline,
   line,
   softline,
-  ifBreak,
   group,
   indent,
 } = require("prettier").doc.builders;
 
 const commaLine = concat([",", line]);
 
-function assertEmptyObject(obj) {
-  return Object.keys(obj).length === 0;
+function onlyAllowKeys(obj, keys) {
+  const extraKey = Object.keys(obj).find(key => keys.indexOf(key) < 0);
+  if (extraKey) {
+    throw new Error(
+      `Do not understand key '${extraKey}' in ${JSON.stringify(obj)}`
+    );
+  }
 }
 
 function isContextNode(node) {
@@ -105,8 +105,6 @@ const CONSTRAINT_TYPES = [
   "EXCLUDE",
   "REFERENCES",
 ];
-
-const { keys } = _;
 
 const compact = o => {
   return _.filter(_.compact(o), p => {
@@ -256,25 +254,9 @@ function getType(astNames, args) {
   }
 }
 
-function deparse(item) {
+function deparse() {
   debugger;
   throw new Error("No more deparse!");
-  if (item == null) {
-    return null;
-  }
-
-  if (_.isNumber(item)) {
-    return item;
-  }
-
-  const type = getOnlyKey(item);
-  const node = item[type];
-
-  if (TYPES[type] == null) {
-    throw new Error(type + " is not implemented");
-  }
-
-  return TYPES[type](node);
 }
 
 module.exports = function print(path, options, print) {
@@ -628,8 +610,7 @@ const TYPES = {
     return output.join("");
   },
 
-  ["A_Star"](path, options, print) {
-    const node = path.getValue();
+  ["A_Star"](_path, _options, _print) {
     return "*";
   },
 
@@ -1011,8 +992,7 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["Null"](path, options, print) {
-    const node = path.getValue();
+  ["Null"](_path, _options, _print) {
     return "NULL";
   },
 
@@ -1188,13 +1168,31 @@ const TYPES = {
   ["SelectStmt"](path, options, print) {
     const node = path.getValue();
     const output = [];
+    onlyAllowKeys(node, [
+      "withClause",
+      "op",
+      "all",
+      "valuesLists",
+      "larg",
+      "rarg",
+      "distinctClause",
+      "targetList",
+      "intoClause",
+      "fromClause",
+      "whereClause",
+      "groupClause",
+      "havingClause",
+      "windowClause",
+      "sortClause",
+      "limitCount",
+      "limitOffset",
+      "lockingClause",
+    ]);
     const {
       withClause,
       op,
       all,
       valuesLists,
-      larg,
-      rarg,
       distinctClause,
       targetList,
       intoClause,
@@ -1207,9 +1205,7 @@ const TYPES = {
       limitCount,
       limitOffset,
       lockingClause,
-      ...rest
     } = node;
-    assertEmptyObject(rest);
 
     if (withClause) {
       output.push(path.call(print, "withClause"));
@@ -1613,15 +1609,16 @@ const TYPES = {
 
   ["TransactionStmt"](path, options, print) {
     const node = path.getValue();
+    onlyAllowKeys(node, ["kind"]);
     switch (node.kind) {
       case 0:
         return "BEGIN";
-        break;
-      case 1:
-        break;
       case 2:
         return "COMMIT";
       default:
+        throw new Error(
+          `Don't understand transaction statement '${node.kind}'`
+        );
     }
   },
 
@@ -1654,7 +1651,7 @@ const TYPES = {
     return output.join(" ");
   },
 
-  ["String"](path, options, print) {
+  ["String"](_path, _options, _print) {
     throw new Error(
       "Do *NOT* call String directly - we don't know which quotes to use!"
     );
