@@ -1,10 +1,4 @@
-const {
-  group,
-  concat,
-  softline,
-  hardline,
-  indent,
-} = require("prettier").doc.builders;
+const { group, concat, hardline, indent } = require("prettier").doc.builders;
 
 function fallbackToSql() {
   console.warn("Could not determine type of function, falling back to SQL");
@@ -18,7 +12,7 @@ function tidyLanguage(code, language) {
   return code;
 }
 
-module.exports = (path, print, textToDoc, options) => {
+module.exports = (path, print, textToDoc, _options) => {
   const node = path.getValue();
   if (node.DefElem && node.DefElem.defname === "as") {
     // This might be the function body!
