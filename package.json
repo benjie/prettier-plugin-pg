@@ -4,7 +4,9 @@
   "description": "A prettier plugin for formatting PostgreSQL-flavour SQL",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "prettier": "prettier --plugin=. --parser=postgresql",
+    "add-statement": "./scripts/add_statement.js"
   },
   "repository": {
     "type": "git",
@@ -26,8 +28,11 @@
     "babel-eslint": "8.2.1",
     "eslint": "4.15.0",
     "eslint-config-prettier": "2.9.0",
+    "eslint-plugin-import": "2.8.0",
+    "eslint-plugin-jest": "21.6.2",
     "eslint-plugin-prettier": "2.4.0",
     "jest": "22.0.6",
+    "jest-runner-eslint": "0.3.0",
     "prettier": "1.10.2"
   },
   "dependencies": {
@@ -38,5 +43,10 @@
     "embed.js",
     "print.js",
     "reservedWords.js"
-  ]
+  ],
+  "jest": {
+    "projects": [
+      "<rootDir>/jest.*.config.js"
+    ]
+  }
 }

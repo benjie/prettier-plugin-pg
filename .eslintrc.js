@@ -2,9 +2,18 @@ module.exports = {
   parser: "babel-eslint",
   parserOptions: {
     sourceType: "module",
+    ecmaFeatures: {
+      experimentalObjectRestSpread: true,
+    },
   },
-  extends: ["eslint:recommended", "prettier"],
-  plugins: ["prettier"],
+  extends: [
+    "eslint:recommended",
+    "prettier",
+    "plugin:prettier/recommended",
+    "plugin:jest/recommended",
+  ],
+  plugins: ["prettier", "import"],
+  root: true,
   env: {
     jest: true,
     es6: true,
@@ -42,4 +51,15 @@ module.exports = {
     "no-await-in-loop": 0,
     camelcase: 0,
   },
+  overrides: [
+    {
+      files: "tests/**/*.js",
+      rules: {
+        strict: false,
+      },
+      globals: {
+        run_spec: true,
+      },
+    },
+  ],
 };
