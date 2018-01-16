@@ -29,8 +29,8 @@ module.exports = (path, print, textToDoc, _options) => {
         plv8: "babylon",
         plpython: "python",
         plpythonu: "python",
-        sql: "postgresql-sql",
-        plpgsql: "postgresql-sql", // TODO: add plpgsql specific parser
+        sql: "postgresql",
+        plpgsql: "postgresql", // TODO: add plpgsql specific parser
       }[language];
       if (parser) {
         const code = tidyLanguage(node.DefElem.arg[0].String.str, language);

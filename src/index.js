@@ -17,20 +17,20 @@ function parse(text, _parsers, _options) {
 const languages = [
   {
     name: "postgresql",
-    parsers: ["postgresql-sql"],
+    parsers: ["postgresql"],
   },
 ];
 
 const parsers = {
-  "postgresql-sql": {
+  postgresql: {
     parse,
     // preprocess
-    astFormat: "postgresql-sql-ast",
+    astFormat: "postgresql-ast",
   },
 };
 
 const printers = {
-  "postgresql-sql-ast": {
+  "postgresql-ast": {
     print,
     embed,
   },

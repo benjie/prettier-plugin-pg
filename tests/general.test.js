@@ -7,7 +7,7 @@ function check(code) {
   if (!first) return test(code);
   test(code, () => {
     const formattedCode = prettier.format(code, {
-      parser: "postgresql-sql",
+      parser: "postgresql",
       plugins: ["./"],
     });
     expect(formattedCode).toMatchSnapshot();
@@ -21,7 +21,7 @@ function expectFail(code) {
     expect(() => {
       try {
         prettier.format(code, {
-          parser: "postgresql-sql",
+          parser: "postgresql",
           plugins: ["./"],
         });
       } catch (e) {
