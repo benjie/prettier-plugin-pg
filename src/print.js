@@ -32,6 +32,30 @@ const _ = {
   },
 };
 
+function optionsToHash(options) {
+  if (!Array.isArray(options)) {
+    throw new Error("Invalid options - expected array, got " + options);
+  }
+  const result = {};
+  for (const option of options) {
+    whitelistKeys(option, ["DefElem"]);
+    const elem = option.DefElem;
+    if (!elem) {
+      throw new Error("Invalid option element");
+    }
+    whitelistKeys(elem, ["defname", "arg", "defaction"]);
+    const { defname, arg, defaction } = elem;
+    if (defaction != null && defaction !== 0) {
+      throw new Error("Expecting defaction = 0");
+    }
+    if (result[defname]) {
+      throw new Error(`Option '${defname}' defined twice?!`);
+    }
+    result[defname] = arg;
+  }
+  return result;
+}
+
 function getOnlyKey(obj) {
   const allKeys = Object.keys(obj);
   if (allKeys.length !== 1) {
@@ -66,7 +90,7 @@ const {
 
 const commaLine = concat([",", line]);
 
-function onlyAllowKeys(obj, keys) {
+function whitelistKeys(obj, keys) {
   const extraKey = Object.keys(obj).find(key => keys.indexOf(key) < 0);
   if (extraKey) {
     throw new Error(
@@ -130,6 +154,23 @@ function deparseNodes(nodes) {
 
 function deString(obj) {
   return obj.String.str;
+}
+
+function deInteger(obj) {
+  return obj.Integer.ival;
+}
+
+function deConst(obj) {
+  whitelistKeys(obj, ["A_Const"]);
+  const { val } = obj.A_Const;
+  const type = getOnlyKey(val);
+  if (type === "String") {
+    return deString(val);
+  } else if (type === "Integer") {
+    return deInteger(val);
+  } else {
+    throw new Error("Invalid constant " + JSON.stringify(obj));
+  }
 }
 
 function list(nodes, separator = ", ") {
@@ -1168,7 +1209,7 @@ const TYPES = {
   ["SelectStmt"](path, options, print) {
     const node = path.getValue();
     const output = [];
-    onlyAllowKeys(node, [
+    whitelistKeys(node, [
       "withClause",
       "op",
       "all",
@@ -1609,17 +1650,42 @@ const TYPES = {
 
   ["TransactionStmt"](path, options, print) {
     const node = path.getValue();
-    onlyAllowKeys(node, ["kind"]);
-    switch (node.kind) {
-      case 0:
-        return "BEGIN";
-      case 2:
-        return "COMMIT";
-      default:
-        throw new Error(
-          `Don't understand transaction statement '${node.kind}'`
-        );
+    whitelistKeys(node, ["kind", "options"]);
+    const parts = [];
+    const stmt = {
+      0: "BEGIN",
+      2: "COMMIT",
+    }[node.kind];
+    if (!stmt) {
+      throw new Error(`Don't understand transaction statement '${node.kind}'`);
     }
+    parts.push(stmt);
+    const opts = node.options ? optionsToHash(node.options) : {};
+    if (opts.transaction_isolation) {
+      const val = deConst(opts.transaction_isolation);
+      parts.push(` ISOLATION LEVEL ${val.toUpperCase()}`);
+    }
+    if (opts.transaction_read_only) {
+      const val = deConst(opts.transaction_read_only);
+      if (val === 0) {
+        parts.push(" READ WRITE");
+      } else if (val === 1) {
+        parts.push(" READ ONLY");
+      } else {
+        throw new Error("Invalid transaction option");
+      }
+    }
+    if (opts.transaction_deferrable) {
+      const val = deConst(opts.transaction_deferrable);
+      if (val === 0) {
+        parts.push(" NOT DEFERRABLE");
+      } else if (val === 1) {
+        parts.push(" DEFERRABLE");
+      } else {
+        throw new Error("Invalid transaction option");
+      }
+    }
+    return concat(parts);
   },
 
   ["SortBy"](path, options, print) {

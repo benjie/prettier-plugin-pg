@@ -1,0 +1,45 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`deferrable.sql - postgresql-verify: deferrable.sql 1`] = `
+begin deferrable;
+begin not deferrable;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BEGIN DEFERRABLE;
+BEGIN NOT DEFERRABLE;
+`;
+
+exports[`full-house.sql - postgresql-verify: full-house.sql 1`] = `
+begin isolation level serializable read write not deferrable;
+begin deferrable read only isolation level read uncommitted;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BEGIN ISOLATION LEVEL SERIALIZABLE READ WRITE NOT DEFERRABLE;
+BEGIN ISOLATION LEVEL READ UNCOMMITTED READ ONLY DEFERRABLE;
+`;
+
+exports[`isolation-level.sql - postgresql-verify: isolation-level.sql 1`] = `
+begin isolation level serializable;
+begin isolation level repeatable read;
+begin isolation level read committed;
+begin isolation level read uncommitted;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+BEGIN ISOLATION LEVEL READ COMMITTED;
+BEGIN ISOLATION LEVEL READ UNCOMMITTED;
+`;
+
+exports[`read.sql - postgresql-verify: read.sql 1`] = `
+begin read write;
+begin read only;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BEGIN READ WRITE;
+BEGIN READ ONLY;
+`;
+
+exports[`simple.sql - postgresql-verify: simple.sql 1`] = `
+BEGIN;
+beGIN; -- Be some delicious gin, please
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BEGIN;
+BEGIN;
+`;
