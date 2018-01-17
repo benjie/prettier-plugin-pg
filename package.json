@@ -1,5 +1,5 @@
 {
-  "name": "prettier-plugin-pg-sql",
+  "name": "prettier-plugin-pg",
   "version": "0.0.0",
   "description": "A prettier plugin for formatting PostgreSQL-flavour SQL",
   "main": "index.js",
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https+git://github.com/benjie/prettier-plugin-pg-sql.git"
+    "url": "https+git://github.com/benjie/prettier-plugin-pg.git"
   },
   "keywords": [
     "prettier",

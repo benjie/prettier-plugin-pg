@@ -1,9 +1,9 @@
-prettier-plugin-pg-sql
+prettier-plugin-pg
 ======================
 
-[![Package on npm](https://img.shields.io/npm/v/prettier-plugin-pg-sql.svg?style=flat)](https://www.npmjs.com/package/prettier-plugin-pg-sql)
-![MIT license](https://img.shields.io/npm/l/prettier-plugin-pg-sql.svg)
-[![Gitter chat room](https://badges.gitter.im/prettier-plugin-pg-sql.svg)](https://gitter.im/prettier-plugin-pg-sql?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Package on npm](https://img.shields.io/npm/v/prettier-plugin-pg.svg?style=flat)](https://www.npmjs.com/package/prettier-plugin-pg)
+![MIT license](https://img.shields.io/npm/l/prettier-plugin-pg.svg)
+[![Gitter chat room](https://badges.gitter.im/prettier-plugin-pg.svg)](https://gitter.im/prettier-plugin-pg?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 <span class="badge-patreon"><a href="https://patreon.com/benjie" title="Donate to support development on this project using Patreon"><img src="https://img.shields.io/badge/patreon-donate-yellow.svg" alt="Patreon donate button" /></a></span>
 [![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.me/benjie)
 [![Follow](https://img.shields.io/badge/twitter-@benjie-blue.svg)](https://twitter.com/benjie)
@@ -38,8 +38,8 @@ How to use it
 Don't! We're not ready yet!
 
 ```
-git clone git@github.com:benjie/prettier-plugin-pg-sql.git
-cd prettier-plugin-pg-sql
+git clone git@github.com:benjie/prettier-plugin-pg.git
+cd prettier-plugin-pg
 yarn
 npm run test
 ```
