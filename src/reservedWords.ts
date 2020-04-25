@@ -770,4 +770,4 @@ const keywords = {
   zone: "non-reserved",
 };
 
-module.exports = Object.keys(keywords);
+export default Object.keys(keywords);

@@ -1,26 +1,27 @@
-const { group, concat, hardline, indent } = require("prettier").doc.builders;
+import * as prettier from "prettier";
+const { group, concat, hardline, indent } = prettier.doc.builders;
 
 function fallbackToSql() {
   console.warn("Could not determine type of function, falling back to SQL");
   return "sql";
 }
 
-function tidyLanguage(code, language) {
+function tidyLanguage(code: string, language: string) {
   if (["plv8", "sql", "plpgsql"].indexOf(language) >= 0) {
     return code.trim();
   }
   return code;
 }
 
-module.exports = (path, print, textToDoc, _options) => {
+export default (path, print, textToDoc, _options) => {
   const node = path.getValue();
   if (node.DefElem && node.DefElem.defname === "as") {
     // This might be the function body!
     const functionNode = path.getParentNode(1);
     if (functionNode.CreateFunctionStmt) {
       const languageOption = functionNode.CreateFunctionStmt.options.find(
-        option =>
-          option && option.DefElem && option.DefElem.defname === "language"
+        (option) =>
+          option && option.DefElem && option.DefElem.defname === "language",
       );
       const language = languageOption
         ? languageOption.DefElem.arg.String.str
@@ -41,7 +42,7 @@ module.exports = (path, print, textToDoc, _options) => {
         return concat([indent(concat([hardline, group(doc)])), hardline]);
       } else {
         console.warn(
-          `Do not know how to parse functions of language '${language}'`
+          `Do not know how to parse functions of language '${language}'`,
         );
       }
     }

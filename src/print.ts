@@ -10,21 +10,26 @@ Neither the name "pg-query-parser" nor the names of its contributors may be used
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const { format } = require("util");
+import { format } from "util";
+import { doc, FastPath, Doc, Printer, ParserOptions } from "prettier";
 
-const RESERVED_WORDS = require("./reservedWords");
+import RESERVED_WORDS from "./reservedWords";
 
+// Cheap lodash ;)
 const _ = {
-  keys: Object.keys,
-  identity: val => val,
-  isArray: Array.isArray,
-  isNumber: n => typeof n === "number",
-  values: Object.values,
-  filter: (arr, fn) => arr.filter(fn),
-  compact: arr => arr.filter(_.identity),
-  last: arr => arr[arr.length - 1],
-  invert: input => {
-    const output = {};
+  keys: Object.keys.bind(Object),
+  identity: <T>(val: T): T => val,
+  isArray: Array.isArray.bind(Array),
+  isNumber: (n: unknown): n is number => typeof n === "number",
+  values: Object.values.bind(Object),
+  filter: <T>(arr: T[], fn: (arg: T) => unknown) => arr.filter(fn),
+  compact: <T>(arr: (T | null | undefined)[]): T[] =>
+    arr.filter(_.identity as any),
+  last: <T = any>(arr: T[]): T | undefined => arr[arr.length - 1],
+  invert: <TKey extends string | number, TVal extends string | number>(
+    input: Record<TKey, TVal>,
+  ): Record<TVal, TKey> => {
+    const output = {} as Record<TVal, TKey>;
     for (const key in input) {
       output[input[key]] = key;
     }
@@ -56,13 +61,13 @@ function optionsToHash(options) {
   return result;
 }
 
-function getOnlyKey(obj) {
+function getOnlyKey(obj: { [key: string]: any }): string {
   const allKeys = Object.keys(obj);
   if (allKeys.length !== 1) {
     throw new Error(
       `Expected object to have exactly one key, instead it had: '${allKeys.join(
-        "', '"
-      )}'`
+        "', '",
+      )}'`,
     );
   }
   return allKeys[0];
@@ -78,23 +83,15 @@ function getFunctionBodyEscapeSequence(text) {
   throw new Error("Could not find an acceptable function escape sequence");
 }
 
-const {
-  concat,
-  join,
-  hardline,
-  line,
-  softline,
-  group,
-  indent,
-} = require("prettier").doc.builders;
+const { concat, join, hardline, line, softline, group, indent } = doc.builders;
 
 const commaLine = concat([",", line]);
 
 function whitelistKeys(obj, keys) {
-  const extraKey = Object.keys(obj).find(key => keys.indexOf(key) < 0);
+  const extraKey = Object.keys(obj).find((key) => keys.indexOf(key) < 0);
   if (extraKey) {
     throw new Error(
-      `Do not understand key '${extraKey}' in ${JSON.stringify(obj)}`
+      `Do not understand key '${extraKey}' in ${JSON.stringify(obj)}`,
     );
   }
 }
@@ -130,8 +127,8 @@ const CONSTRAINT_TYPES = [
   "REFERENCES",
 ];
 
-const compact = o => {
-  return _.filter(_.compact(o), p => {
+const compact = (o) => {
+  return _.filter(_.compact(o), (p) => {
     if (p == null) {
       return false;
     }
@@ -144,12 +141,12 @@ const fail = (type, node) => {
   throw new Error(format("Unhandled %s node: %s", type, JSON.stringify(node)));
 };
 
-const parens = doc => {
+const parens = (doc) => {
   return concat(["(", doc, ")"]);
 };
 
 function deparseNodes(nodes) {
-  return nodes.map(node => deparse(node));
+  return nodes.map((node) => deparse(node));
 }
 
 function deString(obj) {
@@ -188,7 +185,7 @@ function quote(value) {
   }
 
   if (_.isArray(value)) {
-    return value.map(o => quote(o));
+    return value.map((o) => quote(o));
   }
 
   return '"' + value + '"';
@@ -204,7 +201,7 @@ function quoteIdent(value) {
   }
 
   if (_.isArray(value)) {
-    return value.map(o => quoteIdent(o));
+    return value.map((o) => quoteIdent(o));
   }
 
   if (value.match(/^[a-z_][a-z0-9_]*$/) && !isReserved(value)) {
@@ -268,7 +265,7 @@ function convertTypeName(typeName, size) {
 }
 
 function getType(astNames, args) {
-  const names = astNames.map(name => name.String.str);
+  const names = astNames.map((name) => name.String.str);
 
   const mods = (nameDoc, size) => {
     if (size != null) {
@@ -295,16 +292,19 @@ function getType(astNames, args) {
   }
 }
 
-function deparse() {
+function deparse(something: any): any {
   debugger;
   throw new Error("No more deparse!");
 }
 
-module.exports = function print(path, options, print) {
+const print: Printer["print"] = (path: FastPath, options, print) => {
   const n = path.getValue();
   if (Array.isArray(n)) {
     return n.length
-      ? join(hardline, path.map(print).map(stmt => group(concat([stmt, ";"]))))
+      ? join(
+          hardline,
+          path.map(print).map((stmt) => group(concat([stmt, ";"]))),
+        )
       : "";
   }
   const item = path.getValue();
@@ -318,10 +318,12 @@ module.exports = function print(path, options, print) {
     throw new Error(type + " is not implemented");
   }
 
-  return path.call(innerPath => {
+  return path.call((innerPath) => {
     return TYPES[type](innerPath, options, print);
   }, type);
 };
+
+export default print;
 
 function deparseFrameOptions(options, refName, startOffset, endOffset) {
   const FRAMEOPTION_NONDEFAULT = 0x00001; // any specified?
@@ -418,7 +420,7 @@ function deparseInterval(node) {
   }
 
   if (node.typmods) {
-    const typmods = node.typmods.map(item => deparse(item));
+    const typmods = node.typmods.map((item) => deparse(item));
 
     let intervals = interval(typmods[0]);
 
@@ -432,7 +434,7 @@ function deparseInterval(node) {
     ) {
       intervals = [`(${node.typmods[1].A_Const.val.Integer.ival})`];
     } else {
-      intervals = intervals.map(part => {
+      intervals = intervals.map((part) => {
         if (part === "second" && typmods.length === 2) {
           return "second(" + _.last(typmods) + ")";
         }
@@ -447,7 +449,13 @@ function deparseInterval(node) {
   return type.join(" ");
 }
 
-const TYPES = {
+const TYPES: {
+  [type: string]: (
+    path: FastPath,
+    options: ParserOptions,
+    print: (path: FastPath) => Doc,
+  ) => Doc;
+} = {
   ["A_Expr"](path, options, print) {
     const node = path.getValue();
     const output = [];
@@ -490,14 +498,14 @@ const TYPES = {
         return format(
           "%s IS DISTINCT FROM %s",
           deparse(node.lexpr),
-          deparse(node.rexpr)
+          deparse(node.rexpr),
         );
 
       case 4: // AEXPR_NULLIF
         return format(
           "NULLIF(%s, %s)",
           deparse(node.lexpr),
-          deparse(node.rexpr)
+          deparse(node.rexpr),
         );
 
       case 5: {
@@ -514,7 +522,7 @@ const TYPES = {
           "%s %s (%s)",
           deparse(node.lexpr),
           operator,
-          list(node.rexpr)
+          list(node.rexpr),
         );
       }
 
@@ -546,15 +554,15 @@ const TYPES = {
 
         if (deparse(node.rexpr.FuncCall.args[1].Null)) {
           output.push(
-            format("SIMILAR TO %s", deparse(node.rexpr.FuncCall.args[0]))
+            format("SIMILAR TO %s", deparse(node.rexpr.FuncCall.args[0])),
           );
         } else {
           output.push(
             format(
               "SIMILAR TO %s ESCAPE %s",
               deparse(node.rexpr.FuncCall.args[0]),
-              deparse(node.rexpr.FuncCall.args[1])
-            )
+              deparse(node.rexpr.FuncCall.args[1]),
+            ),
           );
         }
 
@@ -566,8 +574,8 @@ const TYPES = {
           format(
             "BETWEEN %s AND %s",
             deparse(node.rexpr[0]),
-            deparse(node.rexpr[1])
-          )
+            deparse(node.rexpr[1]),
+          ),
         );
         return output.join(" ");
 
@@ -577,8 +585,8 @@ const TYPES = {
           format(
             "NOT BETWEEN %s AND %s",
             deparse(node.rexpr[0]),
-            deparse(node.rexpr[1])
-          )
+            deparse(node.rexpr[1]),
+          ),
         );
         return output.join(" ");
 
@@ -759,7 +767,7 @@ const TYPES = {
 
   ["ColumnRef"](path, options, print) {
     const node = path.getValue();
-    const fields = node.fields.map(field => {
+    const fields = node.fields.map((field) => {
       if (field.String) {
         return quoteIdent(field.String.str);
       }
@@ -802,7 +810,7 @@ const TYPES = {
     let params = [];
 
     if (node.args) {
-      params = node.args.map(item => {
+      params = node.args.map((item) => {
         return deparse(item);
       });
     }
@@ -1279,10 +1287,10 @@ const TYPES = {
           concat([
             "(",
             softline,
-            group(join(concat(",", line), path.map(print, "distinctClause"))),
+            group(join(concat([",", line]), path.map(print, "distinctClause"))),
             softline,
             ")",
-          ])
+          ]),
         );
       }
     }
@@ -1317,8 +1325,8 @@ const TYPES = {
               join(commaLine, path.map(print, "valuesList", index)),
               ")",
             ]);
-          })
-        )
+          }),
+        ),
       );
     }
 
@@ -1415,13 +1423,13 @@ const TYPES = {
       output.push(list(node.pk_attrs));
       output.push(")");
     } else if (node.pk_attrs) {
-      output.push(TYPES.ConstraintStmt(node));
+      output.push(TYPES.ConstraintStmt(node, options, print));
       output.push(deparse(node.pktable));
       output.push("(");
       output.push(list(node.pk_attrs));
       output.push(")");
     } else {
-      output.push(TYPES.ConstraintStmt(node));
+      output.push(TYPES.ConstraintStmt(node, options, print));
       output.push(deparse(node.pktable));
     }
     return output.join(" ");
@@ -1432,7 +1440,7 @@ const TYPES = {
     const output = [];
     function getExclusionGroup(node) {
       var output = [];
-      var a = node.exclusions.map(excl => {
+      var a = node.exclusions.map((excl) => {
         if (excl[0].IndexElem.name) {
           return excl[0].IndexElem.name;
         } else if (excl[0].IndexElem.expr) {
@@ -1440,7 +1448,7 @@ const TYPES = {
         }
       });
 
-      var b = node.exclusions.map(excl => deparse(excl[1][0]));
+      var b = node.exclusions.map((excl) => deparse(excl[1][0]));
 
       for (var i = 0; i < a.length; i++) {
         output.push(`${a[i]} WITH ${b[i]}`);
@@ -1471,9 +1479,9 @@ const TYPES = {
     }
 
     if (constraint === "REFERENCES") {
-      output.push(TYPES.ReferenceConstraint(node));
+      output.push(TYPES.ReferenceConstraint(node, options, print));
     } else {
-      output.push(TYPES.ConstraintStmt(node));
+      output.push(TYPES.ConstraintStmt(node, options, print));
     }
 
     if (node.keys) {
@@ -1511,7 +1519,7 @@ const TYPES = {
     }
 
     if (constraint === "EXCLUDE") {
-      output.push(TYPES.ExclusionConstraint(node));
+      output.push(TYPES.ExclusionConstraint(node, options, print));
     }
 
     return output.join(" ");
@@ -1531,7 +1539,7 @@ const TYPES = {
     const node = path.getValue();
     const returns = node.parameters
       ? node.parameters.filter(
-          ({ FunctionParameter }) => FunctionParameter.mode === 116
+          ({ FunctionParameter }) => FunctionParameter.mode === 116,
         )
       : [];
     // var setof = node.parameters.filter(
@@ -1558,7 +1566,7 @@ const TYPES = {
 
           default:
             throw new Error(
-              `Did not understand DefElem defname: '${option.DefElem.defname}'`
+              `Did not understand DefElem defname: '${option.DefElem.defname}'`,
             );
         }
       }
@@ -1589,12 +1597,12 @@ const TYPES = {
                               return path.call(print, "parameters", index);
                             }
                           })
-                          .filter(_ => _)
-                      : []
-                  )
+                          .filter((_) => _)
+                      : [],
+                  ),
                 ),
                 ")",
-              ])
+              ]),
             ),
             line,
             "RETURNS",
@@ -1605,7 +1613,7 @@ const TYPES = {
                     "TABLE(",
                     group(
                       join(
-                        concat(",", line),
+                        concat([",", line]),
                         node.parameters
                           .map((param, index) => {
                             const { FunctionParameter } = param;
@@ -1613,11 +1621,11 @@ const TYPES = {
                               return path.call(print, "parameters", index);
                             }
                           })
-                          .filter(_ => _)
-                      )
+                          .filter((_) => _),
+                      ),
                     ),
                     ")",
-                  ])
+                  ]),
                 )
               : path.call(print, "returnType"),
             line,
@@ -1625,7 +1633,7 @@ const TYPES = {
             line,
 
             volatility ? deString(volatility.DefElem.arg).toUpperCase() : "",
-          ])
+          ]),
         ),
         "AS ",
         functionEscape,
@@ -1633,7 +1641,7 @@ const TYPES = {
         group(path.call(print, "options", functionBodyOptionIndex)),
         line,
         functionEscape,
-      ])
+      ]),
     );
   },
 
@@ -1652,17 +1660,20 @@ const TYPES = {
 
   ["TransactionStmt"](path, options, print) {
     const node = path.getValue();
+    console.dir(node);
+    if (17 === 17) process.exit(1);
     whitelistKeys(node, ["kind", "options"]);
     const parts = [];
-    const stmt = {
+    const TRANSACTION_STMT_BY_KIND: { [key: number]: string | undefined } = {
       0: "BEGIN",
       2: "COMMIT",
-    }[node.kind];
+    };
+    const stmt = TRANSACTION_STMT_BY_KIND[node.kind];
     if (!stmt) {
       throw new Error(`Don't understand transaction statement '${node.kind}'`);
     }
     parts.push(stmt);
-    const opts = node.options ? optionsToHash(node.options) : {};
+    const opts: any = node.options ? optionsToHash(node.options) : {};
     if (opts.transaction_isolation) {
       const val = deConst(opts.transaction_isolation);
       parts.push(` ISOLATION LEVEL ${val.toUpperCase()}`);
@@ -1721,7 +1732,7 @@ const TYPES = {
 
   ["String"](_path, _options, _print) {
     throw new Error(
-      "Do *NOT* call String directly - we don't know which quotes to use!"
+      "Do *NOT* call String directly - we don't know which quotes to use!",
     );
   },
 
@@ -1735,27 +1746,27 @@ const TYPES = {
           "%s %s ALL (%s)",
           deparse(node.testexpr),
           deparse(node.operName[0]),
-          deparse(node.subselect)
+          deparse(node.subselect),
         );
       case node.subLinkType === 2 && !(node.operName != null):
         return format(
           "%s IN (%s)",
           deparse(node.testexpr),
-          deparse(node.subselect)
+          deparse(node.subselect),
         );
       case node.subLinkType === 2:
         return format(
           "%s %s ANY (%s)",
           deparse(node.testexpr),
           deparse(node.operName[0]),
-          deparse(node.subselect)
+          deparse(node.subselect),
         );
       case node.subLinkType === 3:
         return format(
           "%s %s (%s)",
           deparse(node.testexpr),
           deparse(node.operName[0]),
-          deparse(node.subselect)
+          deparse(node.subselect),
         );
       case node.subLinkType === 4:
         return format("(%s)", deparse(node.subselect));
@@ -1828,7 +1839,7 @@ const TYPES = {
       node.frameOptions,
       node.refname,
       node.startOffset,
-      node.endOffset
+      node.endOffset,
     );
 
     if (
@@ -1847,7 +1858,7 @@ const TYPES = {
     if (node.partitionClause) {
       const partition = ["PARTITION BY"];
 
-      const clause = node.partitionClause.map(item => deparse(item));
+      const clause = node.partitionClause.map((item) => deparse(item));
 
       partition.push(clause.join(", "));
 
@@ -1858,7 +1869,7 @@ const TYPES = {
     if (node.orderClause) {
       windowParts.push("ORDER BY");
 
-      const orders = node.orderClause.map(item => {
+      const orders = node.orderClause.map((item) => {
         return deparse(item);
       });
 
@@ -1898,7 +1909,7 @@ const TYPES = {
       return node.arg[0].String.str;
     } else {
       throw new Error(
-        "Do not understand this type of DefElem: " + JSON.stringify(node)
+        "Do not understand this type of DefElem: " + JSON.stringify(node),
       );
     }
   },
