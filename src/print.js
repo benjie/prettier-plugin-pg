@@ -1629,7 +1629,9 @@ const TYPES = {
         ),
         "AS ",
         functionEscape,
+        line,
         group(path.call(print, "options", functionBodyOptionIndex)),
+        line,
         functionEscape,
       ])
     );
