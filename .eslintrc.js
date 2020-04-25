@@ -9,10 +9,9 @@ module.exports = {
   extends: [
     "eslint:recommended",
     "prettier",
-    "plugin:prettier/recommended",
     "plugin:jest/recommended",
   ],
-  plugins: ["prettier", "import"],
+  plugins: ["import"],
   root: true,
   env: {
     jest: true,
@@ -21,12 +20,6 @@ module.exports = {
   },
   rules: {
     "no-debugger": 0,
-    "prettier/prettier": [
-      "error",
-      {
-        trailingComma: "es5",
-      },
-    ],
     "comma-dangle": [
       2,
       {
@@ -54,9 +47,6 @@ module.exports = {
   overrides: [
     {
       files: "tests/**/*.js",
-      rules: {
-        strict: false,
-      },
       globals: {
         run_spec: true,
       },

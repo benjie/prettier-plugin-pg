@@ -25,18 +25,18 @@
   "author": "Benjie Gillam <code@benjiegillam.com>",
   "license": "MIT",
   "devDependencies": {
-    "babel-eslint": "8.2.1",
-    "eslint": "4.15.0",
-    "eslint-config-prettier": "2.9.0",
-    "eslint-plugin-import": "2.8.0",
-    "eslint-plugin-jest": "21.6.2",
-    "eslint-plugin-prettier": "2.4.0",
-    "jest": "22.0.6",
-    "jest-runner-eslint": "0.3.0",
-    "prettier": "1.10.2"
+    "babel-eslint": "10.1.0",
+    "eslint": "6.8.0",
+    "eslint-config-prettier": "6.11.0",
+    "eslint-plugin-import": "2.20.2",
+    "eslint-plugin-jest": "23.8.2",
+    "eslint-plugin-prettier": "3.1.3",
+    "jest": "25.4.0",
+    "jest-runner-eslint": "0.7.7",
+    "prettier": "2.0.5"
   },
   "dependencies": {
-    "pg-query-native": "1.1.0"
+    "pg-query-native": "1.2.0"
   },
   "files": [
     "index.js",
