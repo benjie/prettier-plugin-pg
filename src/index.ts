@@ -1,8 +1,8 @@
 import { parse as parseSQL } from "pg-query-native";
+import { Parser, Plugin, Printer } from "prettier";
 
-import print from "./print";
 import embed from "./embed";
-import { Printer, Parser, Plugin } from "prettier";
+import print from "./print";
 
 const parse: Parser["parse"] = (text, _parsers, _options) => {
   const { query, error, stderr } = parseSQL(text);
@@ -21,8 +21,8 @@ const parser: Parser = {
   astFormat: "postgresql-ast",
 
   //TODO
-  locStart: (node) => 0,
-  locEnd: (node) => 0,
+  locStart: (_node) => 0,
+  locEnd: (_node) => 0,
 };
 
 const printer: Printer = {

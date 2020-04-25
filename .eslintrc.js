@@ -1,54 +1,85 @@
 module.exports = {
-  parser: "babel-eslint",
-  parserOptions: {
-    sourceType: "module",
-    ecmaFeatures: {
-      experimentalObjectRestSpread: true,
-    },
-  },
+  parser: "@typescript-eslint/parser",
   extends: [
     "eslint:recommended",
+    "plugin:import/errors",
+    "plugin:import/typescript",
+    "plugin:@typescript-eslint/recommended",
     "prettier",
-    "plugin:jest/recommended",
+    "prettier/@typescript-eslint",
   ],
-  plugins: ["import"],
-  root: true,
+  plugins: ["jest", "@typescript-eslint", "simple-import-sort", "import"],
+  parserOptions: {
+    ecmaVersion: 2018,
+    sourceType: "module",
+  },
   env: {
+    node: true,
     jest: true,
     es6: true,
-    node: true,
+  },
+  globals: {
+    run_spec: false,
   },
   rules: {
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        args: "after-used",
+        ignoreRestSiblings: true,
+      },
+    ],
+    curly: "error",
     "no-debugger": 0,
-    "comma-dangle": [
-      2,
-      {
-        arrays: "always-multiline",
-        objects: "always-multiline",
-        imports: "always-multiline",
-        exports: "always-multiline",
-        functions: "never",
-      },
-    ],
-    "no-confusing-arrow": 0,
-    "no-console": 0,
     "no-else-return": 0,
+    "no-return-assign": [2, "except-parens"],
     "no-underscore-dangle": 0,
-    "no-unused-vars": [
-      2,
+    "jest/no-focused-tests": 2,
+    "jest/no-identical-title": 2,
+    camelcase: 0,
+    "prefer-arrow-callback": [
+      "error",
       {
-        argsIgnorePattern: "^_|^print$|^options$",
+        allowNamedFunctions: true,
       },
     ],
+    "class-methods-use-this": 0,
     "no-restricted-syntax": 0,
-    "no-await-in-loop": 0,
-    camelcase: 0,
+    "no-param-reassign": [
+      "error",
+      {
+        props: false,
+      },
+    ],
+
+    "arrow-body-style": 0,
+    "no-nested-ternary": 0,
+
+    /*
+     * simple-import-sort seems to be the most stable import sorting currently,
+     * disable others
+     */
+    "simple-import-sort/sort": "error",
+    "sort-imports": "off",
+    "import/order": "off",
+
+    "import/no-deprecated": "warn",
+    "import/no-duplicates": "error",
+
+    // TODO: enable these as warnings:
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
   },
   overrides: [
     {
-      files: "tests/**/*.js",
-      globals: {
-        run_spec: true,
+      files: ["tests/**/*.js", "tests_config/**/*.js", "scripts/**/*.js"],
+      rules: {
+        "@typescript-eslint/no-var-requires": 0,
+        "@typescript-eslint/explicit-function-return-type": 0,
+        "@typescript-eslint/camelcase": 0,
+        "@typescript-eslint/no-use-before-define": 0,
       },
     },
   ],

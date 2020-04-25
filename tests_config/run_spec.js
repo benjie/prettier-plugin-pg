@@ -3,17 +3,17 @@
 const fs = require("fs");
 const extname = require("path").extname;
 const prettier = require("prettier");
-const plugin = require("../src");
+const plugin = require("../dist");
 const massageAST = require("./massageAST");
 
 const AST_COMPARE = process.env["AST_COMPARE"];
 
-function run_spec(dirname, parsers, options) {
-  options = Object.assign(
+function run_spec(dirname, parsers, rawOptions) {
+  const options = Object.assign(
     {
       plugins: ["."],
     },
-    options
+    rawOptions,
   );
 
   /* instabul ignore if */
@@ -21,7 +21,7 @@ function run_spec(dirname, parsers, options) {
     throw new Error(`No parsers were specified for ${dirname}`);
   }
 
-  fs.readdirSync(dirname).forEach(filename => {
+  fs.readdirSync(dirname).forEach((filename) => {
     const path = dirname + "/" + filename;
     if (
       extname(filename) !== ".snap" &&
@@ -37,11 +37,11 @@ function run_spec(dirname, parsers, options) {
       const output = prettyprint(source, path, mergedOptions);
       test(`${filename} - ${mergedOptions.parser}-verify`, () => {
         expect(raw(source + "~".repeat(80) + "\n" + output)).toMatchSnapshot(
-          filename
+          filename,
         );
       });
 
-      parsers.slice(1).forEach(parserName => {
+      parsers.slice(1).forEach((parserName) => {
         test(`${filename} - ${parserName}-verify`, () => {
           const verifyOptions = Object.assign(mergedOptions, {
             parser: parserName,
@@ -59,7 +59,7 @@ function run_spec(dirname, parsers, options) {
         try {
           const ppast = parse(
             prettyprint(source, path, mergedOptions),
-            mergedOptions
+            mergedOptions,
           );
           ppastMassaged = massageAST(ppast);
         } catch (e) {
@@ -81,7 +81,7 @@ global.run_spec = run_spec;
 
 function stripLocation(ast) {
   if (Array.isArray(ast)) {
-    return ast.map(e => stripLocation(e));
+    return ast.map((e) => stripLocation(e));
   }
   if (typeof ast === "object") {
     const newObj = {};
@@ -114,8 +114,8 @@ function prettyprint(src, filename, options) {
       {
         filepath: filename,
       },
-      options
-    )
+      options,
+    ),
   );
 }
 
@@ -140,6 +140,6 @@ function mergeDefaultOptions(parserConfig) {
     {
       printWidth: 80,
     },
-    parserConfig
+    parserConfig,
   );
 }

@@ -1,8 +1,8 @@
 export interface TransactionStmt {
   kind: 0 | 2;
   options: {
-    transaction_isolation;
-    transaction_read_only;
-    transaction_deferrable;
+    transaction_isolation: any;
+    transaction_read_only: any;
+    transaction_deferrable: any;
   };
 }

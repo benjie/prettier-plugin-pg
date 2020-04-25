@@ -10,8 +10,10 @@ Neither the name "pg-query-parser" nor the names of its contributors may be used
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-use-before-define */
+
+import { Doc, doc, FastPath, ParserOptions, Printer } from "prettier";
 import { format } from "util";
-import { doc, FastPath, Doc, Printer, ParserOptions } from "prettier";
 
 import RESERVED_WORDS from "./reservedWords";
 
@@ -1439,8 +1441,8 @@ const TYPES: {
     const node = path.getValue();
     const output = [];
     function getExclusionGroup(node) {
-      var output = [];
-      var a = node.exclusions.map((excl) => {
+      const output = [];
+      const a = node.exclusions.map((excl) => {
         if (excl[0].IndexElem.name) {
           return excl[0].IndexElem.name;
         } else if (excl[0].IndexElem.expr) {
@@ -1448,9 +1450,9 @@ const TYPES: {
         }
       });
 
-      var b = node.exclusions.map((excl) => deparse(excl[1][0]));
+      const b = node.exclusions.map((excl) => deparse(excl[1][0]));
 
-      for (var i = 0; i < a.length; i++) {
+      for (let i = 0; i < a.length; i++) {
         output.push(`${a[i]} WITH ${b[i]}`);
         i !== a.length - 1 && output.push(",");
       }
@@ -1660,8 +1662,6 @@ const TYPES: {
 
   ["TransactionStmt"](path, options, print) {
     const node = path.getValue();
-    console.dir(node);
-    if (17 === 17) process.exit(1);
     whitelistKeys(node, ["kind", "options"]);
     const parts = [];
     const TRANSACTION_STMT_BY_KIND: { [key: number]: string | undefined } = {

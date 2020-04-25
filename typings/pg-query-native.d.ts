@@ -1,5 +1,5 @@
 declare module "pg-query-native" {
-  interface ParseResult {
+  export interface ParseResult {
     query: any;
     error: Error | null;
     stderr: string;

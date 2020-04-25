@@ -10,6 +10,8 @@ copy(JSON.stringify(Array.prototype.slice.call(document.querySelector("#KEYWORDS
 
  */
 
+/* eslint-disable @typescript-eslint/camelcase */
+
 const keywords = {
   a: "",
   abort: "non-reserved",
