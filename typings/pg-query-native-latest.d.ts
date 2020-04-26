@@ -316,31 +316,10 @@ declare module "pg-query-native-latest" {
     | CaseWhenNode
     | WindowDefNode
     | WithClauseNode
-    | DefElemNode
-    | LineCommentNode
-    | BlockCommentNode;
-
-  /* Our custom comment types */
-  export interface LineCommentDef {
-    [key: string]: any /* TODO */;
-  }
-  export type LineCommentNode = {
-    LineComment: LineCommentDef;
-  };
-  export interface BlockCommentDef {
-    [key: string]: any /* TODO */;
-  }
-  export type BlockCommentNode = {
-    LineComment: BlockCommentDef;
-  };
+    | DefElemNode;
 
   export interface ParseResult {
-    query: {
-      Document: {
-        statements: RawStmtNode[];
-      };
-      comments: (LineCommentNode | BlockCommentNode)[];
-    };
+    query: RawStmtNode[];
     error: Error | null;
     stderr: string;
   }

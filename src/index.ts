@@ -7,6 +7,24 @@ import print from "./print";
 
 const LOG_DOCUMENT = false;
 
+/* Our custom comment types */
+export type LineCommentNode = {
+  LineComment: true; // To make it semi-compatible with our pg-query-native-latest nodes
+
+  // Prettier requires this is on the comment directly
+  value: string;
+  start: number;
+  end: number;
+};
+export interface BlockCommentNode {
+  BlockComment: true; // To make it semi-compatible with our pg-query-native-latest nodes
+
+  // Prettier requires this is on the comment directly
+  value: string;
+  start: number;
+  end: number;
+}
+
 const parse: Parser["parse"] = (text, _parsers, _options) => {
   const { query, error, stderr } = parseSQL(text);
   if (error) {
@@ -18,11 +36,19 @@ const parse: Parser["parse"] = (text, _parsers, _options) => {
   if (LOG_DOCUMENT) {
     console.log(inspect(query, { depth: 12 }));
   }
+  const comments: (LineCommentNode | BlockCommentNode)[] = [
+    {
+      LineComment: true,
+      value: "-- Hello!",
+      start: 0,
+      end: 9,
+    },
+  ];
   return {
     Document: {
       statements: query,
     },
-    comments: [],
+    comments,
   };
 };
 
