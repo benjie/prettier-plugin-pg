@@ -36,14 +36,15 @@ const parse: Parser["parse"] = (text, _parsers, _options) => {
   if (LOG_DOCUMENT) {
     console.log(inspect(query, { depth: 12 }));
   }
-  const comments: (LineCommentNode | BlockCommentNode)[] = [
-    {
+  const comments: (LineCommentNode | BlockCommentNode)[] = [];
+  if (text.startsWith("-- Hello!")) {
+    comments.push({
       LineComment: true,
       value: "-- Hello!",
       start: 0,
       end: 9,
-    },
-  ];
+    });
+  }
   return {
     Document: {
       statements: query,
