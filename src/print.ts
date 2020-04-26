@@ -13,7 +13,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-use-before-define */
 
 import { Doc, doc, FastPath, ParserOptions, Printer } from "prettier";
-import { format, inspect } from "util";
+import { format } from "util";
 
 import RESERVED_WORDS from "./reservedWords";
 
@@ -50,7 +50,7 @@ function optionsToHash(options) {
     if (!elem) {
       throw new Error("Invalid option element");
     }
-    whitelistKeys(elem, ["defname", "arg", "defaction"]);
+    whitelistKeys(elem, ["defname", "arg", "defaction", "location"]);
     const { defname, arg, defaction } = elem;
     if (defaction != null && defaction !== 0) {
       throw new Error("Expecting defaction = 0");
@@ -90,10 +90,12 @@ const { concat, join, hardline, line, softline, group, indent } = doc.builders;
 const commaLine = concat([",", line]);
 
 function whitelistKeys(obj, keys) {
-  const extraKey = Object.keys(obj).find((key) => keys.indexOf(key) < 0);
-  if (extraKey) {
+  const extraKeys = Object.keys(obj).filter((key) => keys.indexOf(key) < 0);
+  if (extraKeys.length) {
     throw new Error(
-      `Do not understand key '${extraKey}' in ${JSON.stringify(obj)}`,
+      `Key '${extraKeys.join("', '")}' in \`${JSON.stringify(
+        obj,
+      )}\` is not implemented (supported keys: '${keys.join("', '")}')`,
     );
   }
 }
@@ -458,6 +460,10 @@ const TYPES: {
     print: (path: FastPath) => Doc,
   ) => Doc;
 } = {
+  ["RawStmt"](path, options, print) {
+    // RawStmt is mostly useful for getting statement start/end locations
+    return path.call(print, "stmt");
+  },
   ["A_Expr"](path, options, print) {
     const node = path.getValue();
     const output = [];

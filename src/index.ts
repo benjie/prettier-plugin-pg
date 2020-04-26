@@ -1,8 +1,11 @@
-import { parse as parseSQL } from "pg-query-native";
+import { parse as parseSQL } from "pg-query-native-latest";
 import { Parser, Plugin, Printer } from "prettier";
+import { inspect } from "util";
 
 import embed from "./embed";
 import print from "./print";
+
+const LOG_DOCUMENT = false;
 
 const parse: Parser["parse"] = (text, _parsers, _options) => {
   const { query, error, stderr } = parseSQL(text);
@@ -11,6 +14,9 @@ const parse: Parser["parse"] = (text, _parsers, _options) => {
   }
   if (stderr.length) {
     throw new Error("Error occurred: " + stderr);
+  }
+  if (LOG_DOCUMENT) {
+    console.log(inspect(query, { depth: 12 }));
   }
   return query;
 };

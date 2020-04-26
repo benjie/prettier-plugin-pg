@@ -3453,10 +3453,10 @@ performance-now@^2.1.0:
   resolved "https://registry.yarnpkg.com/performance-now/-/performance-now-2.1.0.tgz#6309f4e0e5fa913ec1c69307ae364b4b377c9e7b"
   integrity sha1-Ywn04OX6kT7BxpMHrjZLSzd8nns=
 
-pg-query-native@1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/pg-query-native/-/pg-query-native-1.2.0.tgz#4373c2ce6bb40b62fa8160cca9b364fd1a76c37e"
-  integrity sha512-glyX18orsaHeDb35Eb+DGeSVAP95ZBPU7FVfBoHGKTcMBH/ZW40SpcUs2WkHhuvppFZD1TjezubfY1uTJewGsA==
+pg-query-native-latest@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/pg-query-native-latest/-/pg-query-native-latest-1.1.0.tgz#5714134ed8ef2575bfe0f7f5e75d8172797265ac"
+  integrity sha512-zz+bBTDwpsT5D2nl1miK+LuIPK71jZqB4L+XxOGX5foKLAJu725+b69k8KJh9Cnr0Iu7e2kmKTkKJ9mN3xs+wg==
   dependencies:
     bindings "^1.2.1"
     nan "^2.3.5"

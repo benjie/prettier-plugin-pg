@@ -43,7 +43,7 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "pg-query-native": "1.2.0"
+    "pg-query-native-latest": "^1.1.0"
   },
   "files": [
     "index.js",
