@@ -1947,6 +1947,38 @@ const TYPES: {
   },
 };
 
+/*
+const nodeTypes = Object.keys(TYPES);
+const defs = [];
+const stmtTypes = [];
+const exprTypes = [];
+const allNodes = [];
+nodeTypes.forEach((t) => {
+  defs.push(`export interface ${t}Def {[key: string]: any /* TODO *`+`/};`);
+  defs.push(`export type ${t}Node = {${t}: ${t}Def};`);
+  defs.push();
+  allNodes.push(`${t}Node`);
+  if (t.endsWith("Stmt")) {
+    stmtTypes.push(`${t}Node`);
+  } else if (t.endsWith("Expr")) {
+    exprTypes.push(`${t}Node`);
+  }
+});
+
+const str = `\
+${defs.join("\n")}
+
+export type ExprNode =
+  | ${exprTypes.join("\n  | ")};
+
+export type StmtNode =
+  | ${stmtTypes.join("\n  | ")};
+
+export type PGNode =
+  | ${allNodes.join("\n  | ")};
+`;
+*/
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // ported from https://github.com/lfittl/pg_query/blob/master/lib/pg_query/deparse/interval.rb

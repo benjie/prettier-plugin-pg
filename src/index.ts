@@ -1,4 +1,4 @@
-import { parse as parseSQL } from "pg-query-native-latest";
+import { parse as parseSQL, PGNode } from "pg-query-native-latest";
 import { Parser, Plugin, Printer } from "prettier";
 import { inspect } from "util";
 
@@ -27,8 +27,8 @@ const parser: Parser = {
   astFormat: "postgresql-ast",
 
   //TODO
-  locStart: (_node) => 0,
-  locEnd: (_node) => 0,
+  locStart: (_node: PGNode) => 0,
+  locEnd: (_node: PGNode) => 0,
 };
 
 const printer: Printer = {
