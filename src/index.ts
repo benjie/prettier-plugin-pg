@@ -26,9 +26,16 @@ const parser: Parser = {
   // preprocess
   astFormat: "postgresql-ast",
 
-  //TODO
-  locStart: (_node: PGNode) => 0,
-  locEnd: (_node: PGNode) => 0,
+  locStart: (node: PGNode) => {
+    if ("RawStmt" in node) {
+      return node.RawStmt.stmt_location || 0;
+    }
+  },
+  locEnd: (node: PGNode) => {
+    if ("RawStmt" in node) {
+      return (node.RawStmt.stmt_location || 0) + node.RawStmt.stmt_len;
+    }
+  },
 };
 
 const printer: Printer = {
