@@ -71,7 +71,7 @@ const parser: Parser = {
 
   locStart: (
     node: PGNode | LineCommentNode | BlockCommentNode | DocumentNode,
-  ) => {
+  ): number | null => {
     if ("Document" in node) {
       return node.Document.doc_location;
     } else if ("RawStmt" in node) {
@@ -79,10 +79,11 @@ const parser: Parser = {
     } else if ("LineComment" in node || "BlockComment" in node) {
       return node.start;
     }
+    return null;
   },
   locEnd: (
     node: PGNode | LineCommentNode | BlockCommentNode | DocumentNode,
-  ) => {
+  ): number | null => {
     if ("Document" in node) {
       return node.Document.doc_location + node.Document.doc_len;
     } else if ("RawStmt" in node) {
@@ -90,6 +91,7 @@ const parser: Parser = {
     } else if ("LineComment" in node || "BlockComment" in node) {
       return node.end;
     }
+    return null;
   },
 };
 
