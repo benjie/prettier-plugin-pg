@@ -302,16 +302,18 @@ function deparse(something: any): any {
 }
 
 const print: Printer["print"] = (path: FastPath, options, print) => {
-  const n = path.getValue();
-  if (Array.isArray(n)) {
-    return n.length
+  const item = path.getValue();
+  if (item.Document) {
+    const { statements } = item.Document;
+    return statements.length
       ? join(
           hardline,
-          path.map(print).map((stmt) => group(concat([stmt, ";"]))),
+          path
+            .map(print, "Document", "statements")
+            .map((stmt) => group(concat([stmt, ";"]))),
         )
       : "";
   }
-  const item = path.getValue();
   if (item == null) {
     return null;
   }

@@ -1,5 +1,5 @@
 import { parse as parseSQL, PGNode } from "pg-query-native-latest";
-import { Parser, Plugin, Printer } from "prettier";
+import { Doc, Parser, Plugin, Printer } from "prettier";
 import { inspect } from "util";
 
 import embed from "./embed";
@@ -18,7 +18,12 @@ const parse: Parser["parse"] = (text, _parsers, _options) => {
   if (LOG_DOCUMENT) {
     console.log(inspect(query, { depth: 12 }));
   }
-  return query;
+  return {
+    Document: {
+      statements: query,
+    },
+    comments: [],
+  };
 };
 
 const parser: Parser = {
@@ -38,9 +43,23 @@ const parser: Parser = {
   },
 };
 
+function canAttachComment(node) {
+  return node.ast_type && node.ast_type !== "comment";
+}
+
 const printer: Printer = {
   print,
   embed,
+  // hasPrettierIgnore: util.hasIgnoreComment,
+  printComments(commentPath, _print, _options, _needsSemi): Doc {
+    const comment = commentPath.getValue();
+    if ("LineComment" in comment) {
+      return comment.LineComment.value;
+    }
+
+    throw new Error("Not a comment: " + JSON.stringify(comment));
+  },
+  canAttachComment,
 };
 
 const plugin: Plugin = {
