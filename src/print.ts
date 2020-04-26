@@ -63,8 +63,12 @@ function optionsToHash(options) {
   return result;
 }
 
+/**
+ * Gets the only key of an object, ignoring 'comments' key added by prettier.
+ * This gives the type of a node, effectively.
+ */
 function getOnlyKey(obj: { [key: string]: any }): string {
-  const allKeys = Object.keys(obj);
+  const allKeys = Object.keys(obj).filter((key) => key !== "comments");
   if (allKeys.length !== 1) {
     throw new Error(
       `Expected object to have exactly one key, instead it had: '${allKeys.join(

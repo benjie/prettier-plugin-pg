@@ -40,7 +40,7 @@
     "jest": "25.4.0",
     "jest-runner-eslint": "0.7.7",
     "prettier": "2.0.5",
-    "typescript": "^3.8.3"
+    "typescript": "^3.9.0-beta"
   },
   "dependencies": {
     "pg-query-native-latest": "^1.1.0"

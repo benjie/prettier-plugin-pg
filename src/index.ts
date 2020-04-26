@@ -57,27 +57,33 @@ const parser: Parser = {
   // preprocess
   astFormat: "postgresql-ast",
 
-  locStart: (node: PGNode) => {
+  locStart: (node: PGNode | LineCommentNode | BlockCommentNode) => {
     if ("RawStmt" in node) {
       return node.RawStmt.stmt_location || 0;
     }
+    if ("LineComment" in node || "BlockComment" in node) {
+      return node.start;
+    }
   },
-  locEnd: (node: PGNode) => {
+  locEnd: (node: PGNode | LineCommentNode | BlockCommentNode) => {
     if ("RawStmt" in node) {
       return (node.RawStmt.stmt_location || 0) + node.RawStmt.stmt_len;
     }
+    if ("LineComment" in node || "BlockComment" in node) {
+      return node.end;
+    }
   },
 };
-
-function canAttachComment(node) {
-  return node.ast_type && node.ast_type !== "comment";
-}
 
 const printer: Printer = {
   print,
   embed,
   // hasPrettierIgnore: util.hasIgnoreComment,
-  printComments(commentPath, _print, _options, _needsSemi): Doc {
+
+  // Types are wrong?
+  // https://github.com/prettier/prettier/blob/eca28c70c615c3f4aaf339fbb555ab33aae07307/src/language-graphql/printer-graphql.js#L656
+  // @ts-expect-error
+  printComment(commentPath): Doc {
     const comment = commentPath.getValue();
     if ("LineComment" in comment) {
       return comment.LineComment.value;
@@ -85,7 +91,15 @@ const printer: Printer = {
 
     throw new Error("Not a comment: " + JSON.stringify(comment));
   },
-  canAttachComment,
+  canAttachComment(node: any) {
+    if (node.LineComment || node.BlockComment) {
+      return false;
+    }
+    if (node.RawStmt) {
+      return true;
+    }
+    return false;
+  },
 };
 
 const plugin: Plugin = {
