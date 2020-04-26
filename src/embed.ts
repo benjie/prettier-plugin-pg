@@ -27,7 +27,7 @@ export default (path, print, textToDoc, _options) => {
         ? languageOption.DefElem.arg.String.str
         : fallbackToSql();
       const parser = {
-        plv8: "babylon",
+        plv8: "babel",
         plpython: "python",
         plpythonu: "python",
         sql: "postgresql",

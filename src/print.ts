@@ -13,7 +13,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-use-before-define */
 
 import { Doc, doc, FastPath, ParserOptions, Printer } from "prettier";
-import { format } from "util";
+import { format, inspect } from "util";
 
 import RESERVED_WORDS from "./reservedWords";
 
@@ -1547,7 +1547,7 @@ const TYPES: {
     // var setof = node.parameters.filter(
     //   ({ FunctionParameter }) => FunctionParameter.mode === 109
     // );
-    let volatility, language, as;
+    let volatility, language, functionBody;
 
     let functionBodyOptionIndex;
     node.options.forEach((option, index) => {
@@ -1555,11 +1555,11 @@ const TYPES: {
         switch (option.DefElem.defname) {
           case "as":
             functionBodyOptionIndex = index;
-            as = option;
+            functionBody = deString(option.DefElem.arg[0]);
             break;
 
           case "language":
-            language = option;
+            language = deString(option.DefElem.arg);
             break;
 
           case "volatility":
@@ -1573,75 +1573,101 @@ const TYPES: {
         }
       }
     });
-    const functionBody = as.DefElem.arg[0].String.str;
+    const functionBodyParser = {
+      plv8: "javascript",
+      plpgsql: "postgresql",
+      sql: "postgresql",
+      plpython: "python",
+      plruby: "ruby",
+    }[language];
     // TODO: we need to do this on the result body, not the source body, in case it's been modified.
     const functionEscape = getFunctionBodyEscapeSequence(functionBody);
+    const args = concat([
+      "(",
+      group(
+        join(
+          ",",
+          node.parameters
+            ? node.parameters
+                .map((param, index) => {
+                  const { FunctionParameter } = param;
+                  if (FunctionParameter.mode === 105) {
+                    return path.call(print, "parameters", index);
+                  }
+                })
+                .filter((_) => _)
+            : [],
+        ),
+      ),
+      ")",
+    ]);
+    const createFunctionFooDoc = group(
+      concat([
+        "CREATE ",
+        node.replace ? "OR REPLACE " : "",
+        "FUNCTION ",
+        join(".", node.funcname.map(deString).map(quoteIdent)),
+        softline,
+        args,
+      ]),
+    );
+    const returnsDoc = concat([
+      line,
+      "RETURNS ",
+      returns.length
+        ? group(
+            concat([
+              "TABLE(",
+              group(
+                join(
+                  concat([",", line]),
+                  node.parameters
+                    .map((param, index) => {
+                      const { FunctionParameter } = param;
+                      if (FunctionParameter.mode === 116) {
+                        return path.call(print, "parameters", index);
+                      }
+                    })
+                    .filter((_) => _),
+                ),
+              ),
+              ")",
+            ]),
+          )
+        : path.call(print, "returnType"),
+    ]);
+    const languageDoc = concat([line, `LANGUAGE '${language}'`]);
+    const volatilityDoc = volatility
+      ? concat([line, deString(volatility.DefElem.arg).toUpperCase()])
+      : "";
     return group(
       concat([
         group(
           concat([
             group(
               concat([
-                "CREATE ",
-                node.replace ? "OR REPLACE " : "",
-                "FUNCTION ",
-                join(".", node.funcname.map(deString).map(quoteIdent)),
-                softline,
-                "(",
-                group(
-                  join(
-                    ",",
-                    node.parameters
-                      ? node.parameters
-                          .map((param, index) => {
-                            const { FunctionParameter } = param;
-                            if (FunctionParameter.mode === 105) {
-                              return path.call(print, "parameters", index);
-                            }
-                          })
-                          .filter((_) => _)
-                      : [],
-                  ),
-                ),
-                ")",
+                createFunctionFooDoc,
+                returnsDoc,
+                languageDoc,
+                volatilityDoc,
               ]),
             ),
             line,
-            "RETURNS",
-            line,
-            returns.length
-              ? group(
-                  concat([
-                    "TABLE(",
-                    group(
-                      join(
-                        concat([",", line]),
-                        node.parameters
-                          .map((param, index) => {
-                            const { FunctionParameter } = param;
-                            if (FunctionParameter.mode === 116) {
-                              return path.call(print, "parameters", index);
-                            }
-                          })
-                          .filter((_) => _),
-                      ),
-                    ),
-                    ")",
-                  ]),
-                )
-              : path.call(print, "returnType"),
-            line,
-            `LANGUAGE '${deString(language.DefElem.arg)}'`,
-            line,
-
-            volatility ? deString(volatility.DefElem.arg).toUpperCase() : "",
+            "AS ",
+            functionEscape,
           ]),
         ),
-        "AS ",
-        functionEscape,
-        line,
+
+        /*
+         * This tells prettier to print
+         * `node['options'][functionBodyOptionIndex]` which is a `DefElem`
+         * containing the function body. If the DefElem is understood by
+         * embed.ts then it'll be parsed in the relevant language, otherwise
+         * it'll be handled by the fallback printer in here (see `DefElem`
+         * below).
+         */
         group(path.call(print, "options", functionBodyOptionIndex)),
-        line,
+
         functionEscape,
       ]),
     );
