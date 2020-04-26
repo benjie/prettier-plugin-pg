@@ -1,4 +1,4 @@
-import { parse as parseSQL, PGNode } from "pg-query-native-latest";
+import { parse as parseSQL, PGNode, StmtNode } from "pg-query-native-latest";
 import { Doc, Parser, Plugin, Printer } from "prettier";
 import { inspect } from "util";
 
@@ -25,7 +25,16 @@ export interface BlockCommentNode {
   end: number;
 }
 
-const parse: Parser["parse"] = (text, _parsers, _options) => {
+interface DocumentNode {
+  Document: {
+    statements: StmtNode[];
+    doc_location: number;
+    doc_len: number;
+  };
+  comments: (LineCommentNode | BlockCommentNode)[];
+}
+
+const parse: Parser["parse"] = (text, _parsers, _options): DocumentNode => {
   const { query, error, stderr } = parseSQL(text);
   if (error) {
     throw error;
@@ -48,6 +57,8 @@ const parse: Parser["parse"] = (text, _parsers, _options) => {
   return {
     Document: {
       statements: query,
+      doc_location: 0,
+      doc_len: text.length,
     },
     comments,
   };
@@ -58,19 +69,25 @@ const parser: Parser = {
   // preprocess
   astFormat: "postgresql-ast",
 
-  locStart: (node: PGNode | LineCommentNode | BlockCommentNode) => {
-    if ("RawStmt" in node) {
+  locStart: (
+    node: PGNode | LineCommentNode | BlockCommentNode | DocumentNode,
+  ) => {
+    if ("Document" in node) {
+      return node.Document.doc_location;
+    } else if ("RawStmt" in node) {
       return node.RawStmt.stmt_location || 0;
-    }
-    if ("LineComment" in node || "BlockComment" in node) {
+    } else if ("LineComment" in node || "BlockComment" in node) {
       return node.start;
     }
   },
-  locEnd: (node: PGNode | LineCommentNode | BlockCommentNode) => {
-    if ("RawStmt" in node) {
+  locEnd: (
+    node: PGNode | LineCommentNode | BlockCommentNode | DocumentNode,
+  ) => {
+    if ("Document" in node) {
+      return node.Document.doc_location + node.Document.doc_len;
+    } else if ("RawStmt" in node) {
       return (node.RawStmt.stmt_location || 0) + node.RawStmt.stmt_len;
-    }
-    if ("LineComment" in node || "BlockComment" in node) {
+    } else if ("LineComment" in node || "BlockComment" in node) {
       return node.end;
     }
   },

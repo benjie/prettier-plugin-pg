@@ -38,7 +38,7 @@ module.exports = {
     "no-underscore-dangle": 0,
     "jest/no-focused-tests": 2,
     "jest/no-identical-title": 2,
-    camelcase: 0,
+    "@typescript-eslint/camelcase": 0,
     "prefer-arrow-callback": [
       "error",
       {
