@@ -188,10 +188,11 @@ const printer: Printer = {
     if (node.LineComment || node.BlockComment) {
       return false;
     }
-    if (node.RawStmt) {
-      console.log("Yes can attach");
+    if (node.start) {
       return true;
     }
+    process.stdout.write(inspect(node));
+    return true;
     return false;
   },
 };
