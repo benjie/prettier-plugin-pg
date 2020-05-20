@@ -19,18 +19,21 @@ function scan(
   thing: any,
   parentNode: AnyNode | null,
   commentLocations: Array<[number, number]>,
+  nodes: AnyNode[],
 ) {
   if (Array.isArray(thing)) {
-    thing.map((subthing) => scan(subthing, parentNode, commentLocations));
+    thing.map((subthing) =>
+      scan(subthing, parentNode, commentLocations, nodes),
+    );
   } else if (typeof thing === "object" && thing) {
     const nodeKeys = Object.keys(thing).filter(isNodeKey);
     if (nodeKeys.length === 1) {
       const node: PGNode = thing;
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      fixNode(node, parentNode, commentLocations);
+      fixNode(node, parentNode, commentLocations, nodes);
     } else {
       for (const key in thing) {
-        scan(thing[key], parentNode, commentLocations);
+        scan(thing[key], parentNode, commentLocations, nodes);
       }
     }
   } else {
@@ -42,7 +45,9 @@ function fixNode(
   node: AnyNode,
   parentNode: AnyNode | null,
   commentLocations: Array<[number, number]>,
+  nodes: AnyNode[],
 ): void {
+  nodes.push(node);
   const nodeKey = getNodeKey(node);
   const inner = node[nodeKey];
 
@@ -75,7 +80,7 @@ function fixNode(
   }
 
   for (const key in inner) {
-    scan(inner[key], node, commentLocations);
+    scan(inner[key], node, commentLocations, nodes);
   }
 }
 
@@ -84,7 +89,13 @@ function fixLocations(doc: DocumentNode): DocumentNode {
   const commentLocations = comments
     .map((c): [number, number] => [c.start, c.end])
     .sort((a, b) => a[0] - b[0]);
-  fixNode(doc, null, commentLocations);
+  const nodes: AnyNode[] = [];
+  // Fixes the 'start' position of all nodes, and collects the list of nodes
+  // into `nodes`.
+  fixNode(doc, null, commentLocations, nodes);
+
+  // Now to fix the `end` position of these nodes!
+  nodes.sort((a, b) => a.start - b.start);
 
   return doc;
 }
