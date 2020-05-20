@@ -141,24 +141,10 @@ const parser: Parser = {
   astFormat: "postgresql-ast",
 
   locStart: (node: AnyNode): number | null => {
-    if ("Document" in node) {
-      return node.Document.doc_location;
-    } else if ("RawStmt" in node) {
-      return node.RawStmt.stmt_location || 0;
-    } else if ("LineComment" in node || "BlockComment" in node) {
-      return node.start;
-    }
-    return null;
+    return node.start;
   },
   locEnd: (node: AnyNode): number | null => {
-    if ("Document" in node) {
-      return node.Document.doc_location + node.Document.doc_len;
-    } else if ("RawStmt" in node) {
-      return (node.RawStmt.stmt_location || 0) + node.RawStmt.stmt_len;
-    } else if ("LineComment" in node || "BlockComment" in node) {
-      return node.end;
-    }
-    return null;
+    return node.end;
   },
 };
 
@@ -191,8 +177,6 @@ const printer: Printer = {
     if (node.start) {
       return true;
     }
-    process.stdout.write(inspect(node));
-    return true;
     return false;
   },
 };
