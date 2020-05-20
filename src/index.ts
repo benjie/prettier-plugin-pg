@@ -5,14 +5,7 @@ import { inspect } from "util";
 import { scanComments } from "./comments";
 import embed from "./embed";
 import print from "./print";
-import {
-  AnyNode,
-  BlockCommentNode,
-  DocumentNode,
-  getNodeKey,
-  isNodeKey,
-  LineCommentNode,
-} from "./util";
+import { AnyNode, DocumentNode, getNodeKey, isNodeKey } from "./util";
 
 const LOG_DOCUMENT = false;
 
