@@ -53,6 +53,8 @@ function fixNode(
   } else if (typeof inner.location === "number") {
     node.start = inner.location;
     // TODO: node.end
+  } else if (["String"].includes(nodeKey)) {
+    /* forgiven */
   } else {
     throw new Error(
       `Node doesn't have location:\n\n${inspect(node, {
