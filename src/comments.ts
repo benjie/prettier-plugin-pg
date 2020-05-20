@@ -79,6 +79,7 @@ export function scanComments(text: string) {
               };
               comments.push(blockComment);
               i = end + 1;
+              break;
             }
           }
         } else {
