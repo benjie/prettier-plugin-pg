@@ -55,9 +55,9 @@ function fixNode(
     // TODO: node.end
   } else {
     throw new Error(
-      `Node doesn't have location: ${inspect(node, {
+      `Node doesn't have location:\n\n${inspect(node, {
         depth: 5,
-      })} (parent node: ${inspect(parentNode, { depth: 2 })})`,
+      })}\n\nParent node:\n\n${inspect(parentNode, { depth: 4 })}`,
     );
   }
 
