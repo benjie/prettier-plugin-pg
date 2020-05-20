@@ -13,10 +13,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-use-before-define */
 
 import { Doc, doc, FastPath, ParserOptions, Printer } from "prettier";
-import { format } from "util";
+import { format, inspect } from "util";
 
 import RESERVED_WORDS from "./reservedWords";
-import { getNodeKey } from "./util";
+import { getNodeKey, isNodeKey } from "./util";
 
 // Cheap lodash ;)
 const _ = {
@@ -96,9 +96,9 @@ function whitelistKeys(obj, allowed) {
 }
 
 function isContextNode(node) {
-  const allKeys = Object.keys(node);
-  if (allKeys.length === 1) {
-    if (allKeys[0].substr(-4) === "Stmt") {
+  const nodeKeys = Object.keys(node).filter(isNodeKey);
+  if (nodeKeys.length === 1) {
+    if (nodeKeys[0].substr(-4) === "Stmt") {
       return true;
     }
     // TODO: context could be part way through, e.g. `INSERT INTO foo SELECT col from my_table` - make sure we handle this.
@@ -1190,6 +1190,13 @@ const TYPES: {
   ["ResTarget"](path, options, print) {
     const node = path.getValue();
     const contextNode = getContextNodeFromPath(path);
+    if (!contextNode) {
+      throw new Error(
+        `Could not find contextNode for ResTarget\n\n${inspect(node, {
+          depth: 6,
+        })}`,
+      );
+    }
     const valDoc = path.call(print, "val");
     const identDoc = quoteIdent(node.name);
     if (contextNode.SelectStmt) {
