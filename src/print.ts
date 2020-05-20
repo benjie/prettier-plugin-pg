@@ -16,6 +16,7 @@ import { Doc, doc, FastPath, ParserOptions, Printer } from "prettier";
 import { format } from "util";
 
 import RESERVED_WORDS from "./reservedWords";
+import { getNodeKey } from "./util";
 
 // Cheap lodash ;)
 const _ = {
@@ -63,22 +64,6 @@ function optionsToHash(options) {
   return result;
 }
 
-/**
- * Gets the only key of an object, ignoring 'comments' key added by prettier.
- * This gives the type of a node, effectively.
- */
-function getOnlyKey(obj: { [key: string]: any }): string {
-  const allKeys = Object.keys(obj).filter((key) => key !== "comments");
-  if (allKeys.length !== 1) {
-    throw new Error(
-      `Expected object to have exactly one key, instead it had: '${allKeys.join(
-        "', '",
-      )}'`,
-    );
-  }
-  return allKeys[0];
-}
-
 function getFunctionBodyEscapeSequence(text) {
   for (let i = 0; i < 1000; i++) {
     const escape = `$${i === 1 ? "_" : i ? i : ""}$`;
@@ -93,7 +78,13 @@ const { concat, join, hardline, line, softline, group, indent } = doc.builders;
 
 const commaLine = concat([",", line]);
 
-function whitelistKeys(obj, keys) {
+function whitelistKeys(obj, allowed) {
+  const keys = [...allowed];
+  if (keys.length === 1 && /^[A-Z]/.test(keys[0])) {
+    keys.push("comments");
+    keys.push("start");
+    keys.push("end");
+  }
   const extraKeys = Object.keys(obj).filter((key) => keys.indexOf(key) < 0);
   if (extraKeys.length) {
     throw new Error(
@@ -168,7 +159,7 @@ function deInteger(obj) {
 function deConst(obj) {
   whitelistKeys(obj, ["A_Const"]);
   const { val } = obj.A_Const;
-  const type = getOnlyKey(val);
+  const type = getNodeKey(val);
   if (type === "String") {
     return deString(val);
   } else if (type === "Integer") {
@@ -322,7 +313,7 @@ const print: Printer["print"] = (path: FastPath, options, print) => {
     return null;
   }
 
-  const type = getOnlyKey(item);
+  const type = getNodeKey(item);
 
   if (TYPES[type] == null) {
     throw new Error(type + " is not implemented");

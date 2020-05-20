@@ -1,37 +1,92 @@
-import { parse as parseSQL, PGNode, StmtNode } from "pg-query-native-latest";
+import { parse as parseSQL, PGNode } from "pg-query-native-latest";
 import { Doc, Parser, Plugin, Printer } from "prettier";
 import { inspect } from "util";
 
 import embed from "./embed";
 import print from "./print";
+import {
+  AnyNode,
+  BlockCommentNode,
+  DocumentNode,
+  getNodeKey,
+  isNodeKey,
+  LineCommentNode,
+} from "./util";
 
 const LOG_DOCUMENT = false;
 
-/* Our custom comment types */
-export type LineCommentNode = {
-  LineComment: true; // To make it semi-compatible with our pg-query-native-latest nodes
-
-  // Prettier requires this is on the comment directly
-  value: string;
-  start: number;
-  end: number;
-};
-export interface BlockCommentNode {
-  BlockComment: true; // To make it semi-compatible with our pg-query-native-latest nodes
-
-  // Prettier requires this is on the comment directly
-  value: string;
-  start: number;
-  end: number;
+function scan(
+  thing: any,
+  parentNode: AnyNode | null,
+  commentLocations: Array<[number, number]>,
+) {
+  if (Array.isArray(thing)) {
+    thing.map((subthing) => scan(subthing, parentNode, commentLocations));
+  } else if (typeof thing === "object" && thing) {
+    const nodeKeys = Object.keys(thing).filter(isNodeKey);
+    if (nodeKeys.length === 1) {
+      const node: PGNode = thing;
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      fixNode(node, parentNode, commentLocations);
+    } else {
+      for (const key in thing) {
+        scan(thing[key], parentNode, commentLocations);
+      }
+    }
+  } else {
+    /* scop scanning here - scalar, etc */
+  }
 }
 
-interface DocumentNode {
-  Document: {
-    statements: StmtNode[];
-    doc_location: number;
-    doc_len: number;
-  };
-  comments: (LineCommentNode | BlockCommentNode)[];
+function fixNode(
+  node: AnyNode,
+  parentNode: AnyNode | null,
+  commentLocations: Array<[number, number]>,
+): void {
+  const nodeKey = getNodeKey(node);
+  const inner = node[nodeKey];
+
+  if (typeof node.start === "number") {
+    /* already done */
+  } else if (typeof inner.stmt_len === "number") {
+    node.start = inner.stmt_location || 0;
+    node.end = node.start + inner.stmt_len;
+  } else if (typeof inner.location === "number") {
+    node.start = inner.location;
+    // TODO: node.end
+  } else {
+    throw new Error(
+      `Node doesn't have location: ${inspect(node, {
+        depth: 5,
+      })} (parent node: ${inspect(parentNode, { depth: 2 })})`,
+    );
+  }
+
+  // Special case: for these node types; the child must consume the entire
+  // RawStmt space.
+  if (nodeKey === "RawStmt") {
+    const child = inner.stmt;
+    child.start = node.start;
+    child.end = node.end;
+  } else if (nodeKey === "A_Const") {
+    const child = inner.val;
+    child.start = node.start;
+    child.end = node.end;
+  }
+
+  for (const key in inner) {
+    scan(inner[key], node, commentLocations);
+  }
+}
+
+function fixLocations(doc: DocumentNode): DocumentNode {
+  const { comments } = doc;
+  const commentLocations = comments
+    .map((c): [number, number] => [c.start, c.end])
+    .sort((a, b) => a[0] - b[0]);
+  fixNode(doc, null, commentLocations);
+
+  return doc;
 }
 
 const parse: Parser["parse"] = (text, _parsers, _options): DocumentNode => {
@@ -50,18 +105,23 @@ const parse: Parser["parse"] = (text, _parsers, _options): DocumentNode => {
     comments.push({
       LineComment: true,
       value: "-- Hello!",
-      start: 0,
+      //leading: true,
+      start: 3,
       end: 9,
-    });
+    } as any);
+    //query[0].RawStmt.stmt_location = 9;
   }
-  return {
+  return fixLocations({
     Document: {
       statements: query,
       doc_location: 0,
       doc_len: text.length,
     },
     comments,
-  };
+
+    start: 0,
+    end: text.length,
+  });
 };
 
 const parser: Parser = {
@@ -69,9 +129,7 @@ const parser: Parser = {
   // preprocess
   astFormat: "postgresql-ast",
 
-  locStart: (
-    node: PGNode | LineCommentNode | BlockCommentNode | DocumentNode,
-  ): number | null => {
+  locStart: (node: AnyNode): number | null => {
     if ("Document" in node) {
       return node.Document.doc_location;
     } else if ("RawStmt" in node) {
@@ -81,9 +139,7 @@ const parser: Parser = {
     }
     return null;
   },
-  locEnd: (
-    node: PGNode | LineCommentNode | BlockCommentNode | DocumentNode,
-  ): number | null => {
+  locEnd: (node: AnyNode): number | null => {
     if ("Document" in node) {
       return node.Document.doc_location + node.Document.doc_len;
     } else if ("RawStmt" in node) {
@@ -95,8 +151,13 @@ const parser: Parser = {
   },
 };
 
+function clean(node, newNode /*, parent*/) {
+  delete newNode.comments;
+}
+
 const printer: Printer = {
   print,
+  massageAstNode: clean,
   embed,
   // hasPrettierIgnore: util.hasIgnoreComment,
 
@@ -106,6 +167,7 @@ const printer: Printer = {
   printComment(commentPath): Doc {
     const comment = commentPath.getValue();
     if ("LineComment" in comment) {
+      console.log("LineComment print");
       return comment.LineComment.value;
     }
 
@@ -116,6 +178,7 @@ const printer: Printer = {
       return false;
     }
     if (node.RawStmt) {
+      console.log("Yes can attach");
       return true;
     }
     return false;
