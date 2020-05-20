@@ -2,6 +2,7 @@ import { parse as parseSQL, PGNode } from "pg-query-native-latest";
 import { Doc, Parser, Plugin, Printer } from "prettier";
 import { inspect } from "util";
 
+import { scanComments } from "./comments";
 import embed from "./embed";
 import print from "./print";
 import {
@@ -111,17 +112,7 @@ const parse: Parser["parse"] = (text, _parsers, _options): DocumentNode => {
   if (LOG_DOCUMENT) {
     console.log(inspect(query, { depth: 12 }));
   }
-  const comments: (LineCommentNode | BlockCommentNode)[] = [];
-  if (text.startsWith("-- Hello!")) {
-    comments.push({
-      LineComment: true,
-      value: "-- Hello!",
-      //leading: true,
-      start: 3,
-      end: 9,
-    } as any);
-    //query[0].RawStmt.stmt_location = 9;
-  }
+  const comments = scanComments(text);
   return fixLocations({
     Document: {
       statements: query,
