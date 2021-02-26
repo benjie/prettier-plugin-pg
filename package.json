@@ -45,10 +45,17 @@
     "typescript": "^3.9.0-beta"
   },
   "dependencies": {
-    "pg-query-native-latest": "^1.1.0"
+    "pgsql-ast-parser": "^6.3.1"
   },
-  "files": ["index.js", "embed.js", "print.js", "reservedWords.js"],
+  "files": [
+    "index.js",
+    "embed.js",
+    "print.js",
+    "reservedWords.js"
+  ],
   "jest": {
-    "projects": ["<rootDir>/jest.*.config.js"]
+    "projects": [
+      "<rootDir>/jest.*.config.js"
+    ]
   }
 }
