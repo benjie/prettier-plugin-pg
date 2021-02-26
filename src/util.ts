@@ -1,54 +1,48 @@
-import * as assert from "assert";
-import { PGNode, StmtNode } from "pg-query-native-latest";
+import {
+  LOCATION,
+  PGComment,
+  PGNode,
+  Statement,
+  StatementLocation,
+} from "pgsql-ast-parser";
 
-/* Our custom comment types */
-export type LineCommentNode = {
-  LineComment: true; // To make it semi-compatible with our pg-query-native-latest nodes
-
-  // Prettier requires this is on the comment directly
-  value: string;
-  start: number;
-  end: number;
-};
-
-export interface BlockCommentNode {
-  BlockComment: true; // To make it semi-compatible with our pg-query-native-latest nodes
-
-  // Prettier requires this is on the comment directly
-  value: string;
-  start: number;
-  end: number;
-}
+import RESERVED_WORDS from "./reservedWords";
 
 export interface DocumentNode {
-  Document: {
-    statements: StmtNode[];
-    doc_location: number;
-    doc_len: number;
-  };
-  comments: (LineCommentNode | BlockCommentNode)[];
-
-  start: number;
-  end: number;
+  type: "document";
+  comments: PGComment[];
+  statements: Statement[];
+  [LOCATION]: StatementLocation;
 }
 
-export type AnyNode =
-  | PGNode
-  | LineCommentNode
-  | BlockCommentNode
-  | DocumentNode;
+export type AnyNode = PGNode | PGComment | DocumentNode;
 
-export const isNodeKey = (k: string) => /^[A-Z]/.test(k[0]);
+export function isReserved(identString: string) {
+  return RESERVED_WORDS.indexOf(identString) >= 0;
+}
 
-/**
- * AST nodes in Postgres follow the form `{Key: {...}}`, where Key is a string
- * beginning with a capital letter. This function returns said key, ignoring
- * any other lower case keys such as `comments`, `start`, `end`, etc.
- *
- * @param node
- */
-export function getNodeKey(node: AnyNode): string {
-  const nodeKeys = Object.keys(node).filter(isNodeKey);
-  assert.equal(nodeKeys.length, 1, "Expected node to be a Node");
-  return nodeKeys[0];
+export function quoteIdent(value: string[] | string | null) {
+  if (value == null) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((o) => quoteIdent(o));
+  }
+
+  if (value.match(/^[a-z_][a-z0-9_]*$/) && !isReserved(value)) {
+    return value;
+  }
+
+  return '"' + value + '"';
+}
+
+export function getFunctionBodyEscapeSequence(text: string): string {
+  for (let i = 0; i < 1000; i++) {
+    const escape = `$${i === 1 ? "_" : i ? i : ""}$`;
+    if (text.indexOf(escape) < 0) {
+      return escape;
+    }
+  }
+  throw new Error("Could not find an acceptable function escape sequence");
 }
