@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "jest",
+    "test": "tsc && jest",
+    "watch": "concurrently --kill-others 'tsc --watch' 'jest --watchAll'",
     "prettier": "tsc && prettier --plugin=. --parser=postgresql",
     "add-statement": "./scripts/add_statement.js"
   },
@@ -31,6 +32,7 @@
     "@typescript-eslint/eslint-plugin": "^2.29.0",
     "@typescript-eslint/parser": "^2.29.0",
     "babel-eslint": "10.1.0",
+    "concurrently": "^6.0.0",
     "eslint": "6.8.0",
     "eslint-config-prettier": "6.11.0",
     "eslint-plugin-import": "2.20.2",
@@ -45,15 +47,8 @@
   "dependencies": {
     "pg-query-native-latest": "^1.1.0"
   },
-  "files": [
-    "index.js",
-    "embed.js",
-    "print.js",
-    "reservedWords.js"
-  ],
+  "files": ["index.js", "embed.js", "print.js", "reservedWords.js"],
   "jest": {
-    "projects": [
-      "<rootDir>/jest.*.config.js"
-    ]
+    "projects": ["<rootDir>/jest.*.config.js"]
   }
 }
