@@ -9,7 +9,7 @@ import {
 import RESERVED_WORDS from "./reservedWords";
 
 export interface DocumentNode {
-  type: "document";
+  _type: "document";
   comments: PGComment[];
   statements: Statement[];
   [LOCATION]: StatementLocation;
