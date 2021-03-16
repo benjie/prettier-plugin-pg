@@ -1,124 +1,55 @@
-import { parse as parseSQL, PGNode } from "pg-query-native-latest";
-import { Doc, Parser, Plugin, Printer } from "prettier";
+import {
+  astMapper,
+  IAstPartialMapper,
+  LOCATION,
+  parseWithComments as parseSQL,
+  PGNode,
+  Statement,
+} from "pgsql-ast-parser";
+import { Doc, FastPath, Parser, Plugin, Printer } from "prettier";
 import { inspect } from "util";
 
-import { scanComments } from "./comments";
 import embed from "./embed";
 import print from "./print";
-import { AnyNode, DocumentNode, getNodeKey, isNodeKey } from "./util";
+import { AnyNode, DocumentNode } from "./util";
+
+export const identityMarker = astMapper((m) => {
+  return new Proxy(
+    {},
+    {
+      get: (_, prop) => {
+        return (v: any, ...others: any[]) => {
+          v["_type"] = prop;
+          return (m.super() as any)[prop](v, ...others);
+        };
+      },
+    },
+  );
+});
+
+type Arg<T> = T extends (val: infer X) => any ? X : never;
+type _Mapped = { [M in keyof IAstPartialMapper]: Arg<IAstPartialMapper[M]> };
+type _Marked = { [T in keyof _Mapped]: _Mapped[T] & { _type: T } };
+export type PGNodeMarked = _Marked[keyof _Marked];
+export type Marked<T extends keyof _Marked = keyof _Marked> = _Marked[T];
 
 const LOG_DOCUMENT = false;
 
-function scan(
-  thing: any,
-  parentNode: AnyNode | null,
-  commentLocations: Array<[number, number]>,
-  nodes: AnyNode[],
-) {
-  if (Array.isArray(thing)) {
-    thing.map((subthing) =>
-      scan(subthing, parentNode, commentLocations, nodes),
-    );
-  } else if (typeof thing === "object" && thing) {
-    const nodeKeys = Object.keys(thing).filter(isNodeKey);
-    if (nodeKeys.length === 1) {
-      const node: PGNode = thing;
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      fixNode(node, parentNode, commentLocations, nodes);
-    } else {
-      for (const key in thing) {
-        scan(thing[key], parentNode, commentLocations, nodes);
-      }
-    }
-  } else {
-    /* scop scanning here - scalar, etc */
-  }
-}
-
-function fixNode(
-  node: AnyNode,
-  parentNode: AnyNode | null,
-  commentLocations: Array<[number, number]>,
-  nodes: AnyNode[],
-): void {
-  nodes.push(node);
-  const nodeKey = getNodeKey(node);
-  const inner = node[nodeKey];
-
-  if (typeof node.start === "number") {
-    /* already done */
-  } else if (typeof inner.stmt_len === "number") {
-    node.start = inner.stmt_location || 0;
-    node.end = node.start + inner.stmt_len;
-  } else if (typeof inner.location === "number") {
-    node.start = inner.location;
-    // TODO: node.end
-  } else if (["String"].includes(nodeKey)) {
-    /* forgiven */
-  } else {
-    throw new Error(
-      `Node doesn't have location:\n\n${inspect(node, {
-        depth: 5,
-      })}\n\nParent node:\n\n${inspect(parentNode, { depth: 4 })}`,
-    );
-  }
-
-  // Special case: for these node types; the child must consume the entire
-  // RawStmt space.
-  if (nodeKey === "RawStmt") {
-    const child = inner.stmt;
-    child.start = node.start;
-    child.end = node.end;
-  } else if (nodeKey === "A_Const") {
-    const child = inner.val;
-    child.start = node.start;
-    child.end = node.end;
-  }
-
-  for (const key in inner) {
-    scan(inner[key], node, commentLocations, nodes);
-  }
-}
-
-function fixLocations(doc: DocumentNode): DocumentNode {
-  const { comments } = doc;
-  const commentLocations = comments
-    .map((c): [number, number] => [c.start, c.end])
-    .sort((a, b) => a[0] - b[0]);
-  const nodes: AnyNode[] = [];
-  // Fixes the 'start' position of all nodes, and collects the list of nodes
-  // into `nodes`.
-  fixNode(doc, null, commentLocations, nodes);
-
-  // Now to fix the `end` position of these nodes!
-  nodes.sort((a, b) => a.start - b.start);
-
-  return doc;
-}
-
 const parse: Parser["parse"] = (text, _parsers, _options): DocumentNode => {
-  const { query, error, stderr } = parseSQL(text);
-  if (error) {
-    throw error;
-  }
-  if (stderr.length) {
-    throw new Error("Error occurred: " + stderr);
-  }
+  const { comments, ast: rawAst } = parseSQL(text, { locationTracking: true });
+  const ast = rawAst.map((statement) => identityMarker.statement(statement));
   if (LOG_DOCUMENT) {
-    console.log(inspect(query, { depth: 12 }));
+    console.log(inspect(ast, { depth: 12 }));
   }
-  const comments = scanComments(text);
-  return fixLocations({
-    Document: {
-      statements: query,
-      doc_location: 0,
-      doc_len: text.length,
-    },
+  return {
+    _type: "document",
     comments,
-
-    start: 0,
-    end: text.length,
-  });
+    statements: ast.filter((s): s is Statement => !!s),
+    [LOCATION]: {
+      start: 0,
+      end: text.length,
+    },
+  };
 };
 
 const parser: Parser = {
@@ -126,15 +57,17 @@ const parser: Parser = {
   // preprocess
   astFormat: "postgresql-ast",
 
+  // @ts-ignore
   locStart: (node: AnyNode): number | null => {
-    return node.start;
+    return node[LOCATION]?.start ?? null;
   },
+  // @ts-ignore
   locEnd: (node: AnyNode): number | null => {
-    return node.end;
+    return node[LOCATION]?.end ?? null;
   },
 };
 
-function clean(node, newNode /*, parent*/) {
+function clean(_node: any, newNode: any /* , parent*/) {
   delete newNode.comments;
 }
 
@@ -144,23 +77,18 @@ const printer: Printer = {
   embed,
   // hasPrettierIgnore: util.hasIgnoreComment,
 
-  // Types are wrong?
-  // https://github.com/prettier/prettier/blob/eca28c70c615c3f4aaf339fbb555ab33aae07307/src/language-graphql/printer-graphql.js#L656
-  // @ts-expect-error
-  printComment(commentPath): Doc {
+  printComment(commentPath: FastPath<any>): Doc {
     const comment = commentPath.getValue();
-    if ("LineComment" in comment) {
-      console.log("LineComment print");
-      return comment.LineComment.value;
+    if (typeof comment.comment === "string") {
+      return comment.comment;
     }
-
     throw new Error("Not a comment: " + JSON.stringify(comment));
   },
   canAttachComment(node: any) {
-    if (node.LineComment || node.BlockComment) {
+    if (typeof node.comment === "string" && node.type !== "comment") {
       return false;
     }
-    if (node.start) {
+    if (node[LOCATION].start) {
       return true;
     }
     return false;

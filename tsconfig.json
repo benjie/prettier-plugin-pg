@@ -5,7 +5,7 @@
     "target": "ES2019",
     "types": ["node"],
 
-    "strict": false,
+    "strict": true,
 
     "typeRoots": ["@types", "typings"],
     "rootDir": "src",
