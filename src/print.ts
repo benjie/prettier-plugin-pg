@@ -1,8 +1,7 @@
-import { DataTypeDef } from "pgsql-ast-parser";
 import { doc, Printer } from "prettier";
 
-import { Marked, PGNodeMarked } from ".";
-import { AnyNode, DocumentNode } from "./util";
+import { PGNodeMarked } from ".";
+import { DocumentNode } from "./util";
 
 const { concat, join, hardline, line, softline, group, indent } = doc.builders;
 const commaLine = concat([",", line]);

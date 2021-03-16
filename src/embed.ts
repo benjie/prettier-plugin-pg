@@ -1,7 +1,10 @@
 import { CreateFunctionStatement, ReturnsTable } from "pgsql-ast-parser";
 import { Doc, doc, FastPath, Options, ParserOptions, Printer } from "prettier";
+import { inspect } from "util";
 
-import { AnyNode, getFunctionBodyEscapeSequence, quoteIdent } from "./util";
+import { PGNodeMarked } from ".";
+import { getFunctionBodyEscapeSequence, quoteIdent } from "./util";
+
 const { concat, join, hardline, line, softline, group, indent } = doc.builders;
 
 function tidyLanguage(code: string, language: string | undefined) {
@@ -11,20 +14,13 @@ function tidyLanguage(code: string, language: string | undefined) {
   return code;
 }
 
-function isCreateFunctionStatement(
-  node: AnyNode,
-): node is CreateFunctionStatement {
-  // TODO: need to make this safer
-  return node && (node as any).type === "create function";
-}
-
 const embedCreateFunctionStatement = (
   path: FastPath<CreateFunctionStatement>,
   print: (path: FastPath<any>) => Doc,
   textToDoc: (text: string, options: Options) => Doc,
   _options: ParserOptions,
 ) => {
-  const node = path.getValue();
+  const node: CreateFunctionStatement = path.getValue();
   const parser = {
     plv8: "babel",
     plpython: "python",
@@ -97,6 +93,7 @@ const embedCreateFunctionStatement = (
     ? concat([line, node.purity.toUpperCase()])
     : null;
   const code = tidyLanguage(node.code, node.language?.name);
+  process.stdout.write(`FORMATTING CODE: '''${code}'''\n`);
   const formattedCode = parser
     ? textToDoc(
         code,
@@ -136,15 +133,15 @@ const embedCreateFunctionStatement = (
 
 const embed: Printer["embed"] = (path, print, textToDoc, options) => {
   try {
-    const node = path.getValue();
-    console.log("In embed:");
-    console.dir(node);
-    if (isCreateFunctionStatement(node)) {
-      console.log("Yep");
+    const node: PGNodeMarked = path.getValue();
+    process.stdout.write("In embed\n");
+    process.stdout.write(`${inspect(node)}\n`);
+    if (node?._type === "createFunction") {
+      process.stdout.write("Yep\n");
       return embedCreateFunctionStatement(path, print, textToDoc, options);
     }
   } catch (e) {
-    console.error(e);
+    process.stderr.write(`ERROR: ${inspect(e)}\n`);
     throw e;
   }
   return null;
