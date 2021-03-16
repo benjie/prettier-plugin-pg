@@ -4,8 +4,8 @@ import { Doc, doc, FastPath, Options, ParserOptions, Printer } from "prettier";
 import { AnyNode, getFunctionBodyEscapeSequence, quoteIdent } from "./util";
 const { concat, join, hardline, line, softline, group, indent } = doc.builders;
 
-function tidyLanguage(code: string, language: string) {
-  if (["plv8", "sql", "plpgsql"].indexOf(language) >= 0) {
+function tidyLanguage(code: string, language: string | undefined) {
+  if (language != null && ["plv8", "sql", "plpgsql"].indexOf(language) >= 0) {
     return code.trim();
   }
   return code;
@@ -68,7 +68,7 @@ const embedCreateFunctionStatement = (
     ]),
   );
   let returnStuff: null | Doc = null;
-  if (node.returns.kind === "table") {
+  if (node.returns?.kind === "table") {
     const t = node.returns as ReturnsTable;
     returnStuff = group(
       concat([
@@ -90,14 +90,13 @@ const embedCreateFunctionStatement = (
   const returnsDoc = returnStuff
     ? concat([line, "RETURNS ", returnStuff])
     : null;
-  const languageDoc = concat([
-    line,
-    `LANGUAGE '${node.language.name /* TODO: escape */}'`,
-  ]);
+  const languageDoc = node.language
+    ? concat([line, `LANGUAGE '${node.language?.name /* TODO: escape */}'`])
+    : null;
   const volatilityDoc = node.purity
     ? concat([line, node.purity.toUpperCase()])
-    : "";
-  const code = tidyLanguage(node.code, node.language.name);
+    : null;
+  const code = tidyLanguage(node.code, node.language?.name);
   const formattedCode = parser
     ? textToDoc(
         code,
@@ -118,8 +117,8 @@ const embedCreateFunctionStatement = (
             concat([
               createFunctionFooDoc,
               ...(returnsDoc ? [returnsDoc] : []),
-              languageDoc,
-              volatilityDoc,
+              ...(languageDoc ? [languageDoc] : []),
+              ...(volatilityDoc ? [volatilityDoc] : []),
             ]),
           ),
           line,

@@ -21,7 +21,12 @@ export function isReserved(identString: string) {
   return RESERVED_WORDS.indexOf(identString) >= 0;
 }
 
-export function quoteIdent(value: string[] | string | null) {
+export function quoteIdent(value: null): null;
+export function quoteIdent(value: string): string;
+export function quoteIdent(value: string[]): string[];
+export function quoteIdent(
+  value: string[] | string | null,
+): string[] | string | null {
   if (value == null) {
     return null;
   }

@@ -13,11 +13,11 @@ indent;
 commaLine;
 
 const psqlPrint: Printer["print"] = (path, _options, print) => {
-  const item: Marked | DocumentNode = path.getValue();
+  const item: PGNodeMarked | DocumentNode = path.getValue();
   console.log("In psqlPrint:");
   console.dir(item);
   if (item == null) {
-    return null;
+    throw new Error("psqlPrint was passed a null item");
   } else if (item._type === "document") {
     const { statements } = item;
     return statements.length
@@ -31,11 +31,10 @@ const psqlPrint: Printer["print"] = (path, _options, print) => {
   } else {
     switch (item._type) {
       case "dataType": {
-        const dataType: DataTypeDef = item;
-        if (dataType.kind === "array") {
-          return print(dataType.arrayOf) + "[]";
+        if (item.kind === "array") {
+          return concat([path.call(print, "arrayOf"), "[]"]);
         } else {
-          return dataType.name;
+          return item.name;
         }
       }
       default: {

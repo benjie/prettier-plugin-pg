@@ -4,6 +4,7 @@ import {
   LOCATION,
   parseWithComments as parseSQL,
   PGNode,
+  Statement,
 } from "pgsql-ast-parser";
 import { Doc, FastPath, Parser, Plugin, Printer } from "prettier";
 import { inspect } from "util";
@@ -43,7 +44,7 @@ const parse: Parser["parse"] = (text, _parsers, _options): DocumentNode => {
   return {
     _type: "document",
     comments,
-    statements: ast,
+    statements: ast.filter((s): s is Statement => !!s),
     [LOCATION]: {
       start: 0,
       end: text.length,
@@ -56,15 +57,17 @@ const parser: Parser = {
   // preprocess
   astFormat: "postgresql-ast",
 
+  // @ts-ignore
   locStart: (node: AnyNode): number | null => {
-    return node[LOCATION].start;
+    return node[LOCATION]?.start ?? null;
   },
+  // @ts-ignore
   locEnd: (node: AnyNode): number | null => {
-    return node[LOCATION].end;
+    return node[LOCATION]?.end ?? null;
   },
 };
 
-function clean(node, newNode /* , parent*/) {
+function clean(_node: any, newNode: any /* , parent*/) {
   delete newNode.comments;
 }
 
