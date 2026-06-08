@@ -13,6 +13,10 @@
     "type": "git",
     "url": "https+git://github.com/benjie/prettier-plugin-pg.git"
   },
+  "homepage": "https://github.com/benjie/prettier-plugin-pg#readme",
+  "bugs": {
+    "url": "https://github.com/benjie/prettier-plugin-pg/issues"
+  },
   "keywords": [
     "prettier",
     "sql",
